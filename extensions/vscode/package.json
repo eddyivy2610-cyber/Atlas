@@ -1,0 +1,99 @@
+{
+  "name": "umldoc-vscode",
+  "displayName": "UMLdoc: Verified Architecture & UML",
+  "description": "Interactive verified UML diagrams, drift detection, and architecture dossiers for Python codebases.",
+  "version": "0.1.0",
+  "publisher": "umldoc",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "uml",
+    "class diagram",
+    "sequence diagram",
+    "architecture",
+    "python",
+    "ast",
+    "drift"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:python",
+    "onCommand:umldoc.openDiagram",
+    "onCommand:umldoc.refreshDiagram",
+    "onCommand:umldoc.exportBundle"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "umldoc.openDiagram",
+        "title": "Open Architecture Diagram",
+        "category": "UMLdoc",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "umldoc.refreshDiagram",
+        "title": "Refresh Architecture Diagram",
+        "category": "UMLdoc",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "umldoc.exportBundle",
+        "title": "Export Architecture Dossier Bundle",
+        "category": "UMLdoc",
+        "icon": "$(file-zip)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "umldoc.openDiagram",
+          "when": "resourceLangId == python",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "umldoc.openDiagram"
+        },
+        {
+          "command": "umldoc.refreshDiagram"
+        },
+        {
+          "command": "umldoc.exportBundle"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "UMLdoc",
+      "properties": {
+        "umldoc.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Python interpreter. Defaults to workspace environment or system python."
+        },
+        "umldoc.autoRefreshOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh open architecture diagram when Python files are saved."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}

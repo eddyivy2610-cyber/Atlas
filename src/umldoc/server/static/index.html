@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#030611">
+  <title>UMLdoc Presentation &amp; Interaction Layer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="https://unpkg.com/lucide@latest"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="workspace" id="workspace">
+    <header class="topbar">
+      <div class="top-left">
+        <div class="brand-mark" aria-label="UMLdoc" role="img">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <button class="top-pill" type="button" data-menu-trigger="workspace-menu" aria-haspopup="menu" aria-expanded="false">
+          <i class="icon" data-lucide="network" aria-hidden="true"></i>
+          <span>Logical</span>
+          <i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="popover menu" id="workspace-menu" role="menu" hidden>
+          <button type="button" role="menuitem" class="menu-item is-selected" data-view-mode="logical">Logical view <span>⌘ 1</span></button>
+          <button type="button" role="menuitem" class="menu-item" data-view-mode="physical">Physical view <span>⌘ 2</span></button>
+        </div>
+      </div>
+
+      <button class="center-title" type="button" data-menu-trigger="project-menu" aria-haspopup="menu" aria-expanded="false">
+        <strong>UMLdoc</strong><span class="slash">/</span><span>Live presentation</span>
+        <i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+      </button>
+      <div class="popover menu project-menu" id="project-menu" role="menu" hidden>
+        <button type="button" role="menuitem" class="menu-item is-selected">TinyDB · v4.0.0 <span>active</span></button>
+        <a role="menuitem" class="menu-item" href="/bundles/click/index.html">Click · v8.1.8 <span>open dossier</span></a>
+      </div>
+
+      <div class="top-right">
+        <button class="top-icon" id="search-toggle" type="button" aria-label="Search architecture" aria-expanded="false" aria-controls="search-popover">
+          <i class="icon" data-lucide="search" aria-hidden="true"></i>
+        </button>
+        <div class="avatar-stack" aria-label="8 collaborators">
+          <span class="avatar avatar-blue"></span><span class="avatar avatar-gold"></span><span class="avatar avatar-mint"></span><span class="avatar avatar-violet"></span>
+          <span class="avatar-count">+8</span>
+        </div>
+        <button class="profile-pill" type="button" data-menu-trigger="profile-menu" aria-haspopup="menu" aria-expanded="false">
+          <span class="avatar avatar-profile"></span><span>Class 1</span><i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="popover menu profile-menu" id="profile-menu" role="menu" hidden>
+          <button type="button" role="menuitem" class="menu-item">Presentation settings <span>⌘ ,</span></button>
+          <button type="button" role="menuitem" class="menu-item">Keyboard shortcuts <span>?</span></button>
+        </div>
+      </div>
+
+      <div class="popover search-popover" id="search-popover" role="dialog" aria-label="Search architecture" hidden>
+        <form id="search-form" class="search-form">
+          <i class="icon" data-lucide="search" aria-hidden="true"></i>
+          <input id="search-input" type="search" autocomplete="off" placeholder="Filter classes and stages" aria-label="Filter classes and stages">
+          <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">Esc</button>
+        </form>
+        <p class="search-hint">Try <kbd>TinyDB</kbd>, <kbd>Drift</kbd>, or <kbd>bundle</kbd></p>
+      </div>
+    </header>
+
+    <div class="mode-switch" role="tablist" aria-label="Workspace mode">
+      <button class="mode active" type="button" role="tab" aria-selected="true" data-mode="realtime"><i class="icon" data-lucide="clock-3" aria-hidden="true"></i>Real time</button>
+      <button class="mode" type="button" role="tab" aria-selected="false" data-mode="simulation"><i class="icon" data-lucide="timer" aria-hidden="true"></i>Simulation</button>
+    </div>
+
+    <aside class="toolbar" aria-label="Diagram tools">
+      <button class="tool active" type="button" data-tool="select" aria-label="Select tool" aria-pressed="true" data-tooltip="Select (Esc)"><i class="icon" data-lucide="scan-dashed" aria-hidden="true"></i></button>
+      <button class="tool" type="button" data-tool="inspect" aria-label="Inspect tool" aria-pressed="false" data-tooltip="Inspect (I)"><i class="icon" data-lucide="search" aria-hidden="true"></i></button>
+      <button class="tool" type="button" data-tool="delete" aria-label="Delete tool" aria-pressed="false" data-tooltip="Delete (Del)"><i class="icon" data-lucide="circle-x" aria-hidden="true"></i></button>
+      <button class="tool" type="button" data-tool="resize" aria-label="Resize tool" aria-pressed="false" data-tooltip="Resize (R)"><i class="icon" data-lucide="scan" aria-hidden="true"></i></button>
+      <button class="tool" type="button" data-tool="note" aria-label="Add note" aria-pressed="false" data-tooltip="Add note (N)"><i class="icon" data-lucide="sticky-note" aria-hidden="true"></i></button>
+      <span class="tool-divider" aria-hidden="true"></span>
+      <button class="tool" type="button" data-zoom-action="in" aria-label="Zoom in" data-tooltip="Zoom in (+)"><i class="icon" data-lucide="zoom-in" aria-hidden="true"></i></button>
+      <button class="tool" type="button" data-zoom-action="out" aria-label="Zoom out" data-tooltip="Zoom out (-)"><i class="icon" data-lucide="zoom-out" aria-hidden="true"></i></button>
+      <span class="tool-divider" aria-hidden="true"></span>
+      <a class="tool" href="/bundles/tinydb.zip" aria-label="Download TinyDB bundle" data-tooltip="Download bundle"><i class="icon" data-lucide="download" aria-hidden="true"></i></a>
+      <a class="tool" href="/bundles/tinydb/index.html" aria-label="Open TinyDB report" data-tooltip="Open report"><i class="icon" data-lucide="panel-top-open" aria-hidden="true"></i></a>
+    </aside>
+
+    <main class="graph-zone" id="graph-zone" aria-label="TinyDB architecture graph">
+      <div class="graph-title">
+        <span class="status-dot status-live" aria-hidden="true"></span>
+        <div class="copy"><h1>Architecture graph</h1><p>tinydb · verified source model</p></div>
+      </div>
+
+      <div class="diagram-layer" id="diagram-layer" aria-live="polite">
+        <div class="archive-card archive-a" aria-hidden="true"></div>
+        <div class="archive-card archive-b" aria-hidden="true"></div>
+        <div class="archive-card archive-c" aria-hidden="true"></div>
+        <div class="archive-card archive-d" aria-hidden="true"></div>
+        <div class="archive-card archive-e" aria-hidden="true"></div>
+        <div class="archive-card archive-f" aria-hidden="true"></div>
+        <div class="orbits" aria-hidden="true">
+          <span class="orbit one"></span><span class="orbit two"></span><span class="orbit three"></span>
+          <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span><span class="spark s4"></span>
+        </div>
+        <div class="graph-canvas">
+          <svg class="connections" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 820 590">
+            <line class="primary" x1="392" x2="215" y1="282" y2="155"></line>
+            <line class="primary" x1="480" x2="610" y1="282" y2="145"></line>
+            <line class="primary" x1="492" x2="685" y1="323" y2="310"></line>
+            <line class="primary" x1="478" x2="580" y1="370" y2="470"></line>
+            <line class="primary" x1="390" x2="232" y1="379" y2="478"></line>
+            <line class="dashed" x1="363" x2="107" y1="330" y2="313"></line>
+            <circle cx="392" cy="282" fill="var(--cream)" r="3"></circle><circle cx="480" cy="282" fill="var(--cyan)" r="3"></circle>
+            <circle cx="492" cy="323" fill="var(--cyan)" r="3"></circle><circle cx="478" cy="370" fill="var(--cyan)" r="3"></circle>
+            <circle cx="390" cy="379" fill="var(--cyan)" r="3"></circle>
+            <text x="283" y="208">extracts</text><text x="530" y="207">traces</text><text x="570" y="304">verifies</text>
+            <text x="519" y="431">compares</text><text x="294" y="442">packages</text><text x="185" y="300">legacy view</text>
+          </svg>
+
+          <button class="uml-node root" type="button" data-node-name="TinyDB" aria-label="Select TinyDB root package">
+            <span class="node-head"><span class="node-symbol">DB</span><span class="node-name">TinyDB</span></span>
+            <span class="node-meta"><span>root package</span> · tinydb</span><span class="node-badge"><i></i> VERIFIED GROUND TRUTH</span>
+          </button>
+          <button class="uml-node ast" type="button" data-node-name="ASTStaticExtractor" aria-label="Select ASTStaticExtractor">
+            <span class="node-head"><span class="node-symbol">AST</span><span class="node-name">ASTStaticExtractor</span></span>
+            <span class="node-meta"><span>class inventory</span> · 48 symbols</span><span class="node-badge"><i></i> verified</span>
+          </button>
+          <button class="uml-node trace" type="button" data-node-name="DynamicTrace" aria-label="Select DynamicTrace">
+            <span class="node-head"><span class="node-symbol">↗</span><span class="node-name">DynamicTrace</span></span>
+            <span class="node-meta"><span>runtime sessions</span> · 12 events</span><span class="node-badge"><i></i> verified</span>
+          </button>
+          <button class="uml-node verify" type="button" data-node-name="DiagramVerifier" aria-label="Select DiagramVerifier">
+            <span class="node-head"><span class="node-symbol">✓</span><span class="node-name">DiagramVerifier</span></span>
+            <span class="node-meta"><span>confidence</span> · 92%</span><span class="node-badge"><i></i> verified</span>
+          </button>
+          <button class="uml-node drift" type="button" data-node-name="DriftAnalyzer">
+            <span class="node-head"><span class="node-symbol">Δ</span><span class="node-name">DriftAnalyzer</span></span>
+            <span class="node-meta"><span>release diff</span> · v3 → v4</span><span class="node-badge"><i></i> verified</span>
+          </button>
+          <button class="uml-node bundle" type="button" data-node-name="BundlePackager">
+            <span class="node-head"><span class="node-symbol">ZIP</span><span class="node-name">BundlePackager</span></span>
+            <span class="node-meta"><span>portable output</span> · 6 artifacts</span><span class="node-badge"><i></i> verified</span>
+          </button>
+          <button class="uml-node click" type="button" data-node-name="Click">
+            <span class="node-head"><span class="node-symbol">C</span><span class="node-name">Click</span></span>
+            <span class="node-meta"><span>comparison repo</span> · 81 classes</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="graph-foot"><span class="status-dot status-cyan" aria-hidden="true"></span><span>6 relations</span><span>·</span><span id="selection-status">0 selected</span></div>
+    </main>
+
+    <aside class="run-panel" aria-label="Live run panel">
+      <div class="panel-head">
+        <div class="panel-title"><h2>Live run</h2><p>Pipeline presentation</p></div>
+        <div class="live-pill"><i></i> LIVE</div>
+        <button class="dock-icon" type="button" id="panel-toggle" aria-label="Collapse live run panel"><i class="icon" data-lucide="panel-right-close" aria-hidden="true"></i></button>
+      </div>
+      <div class="switcher" role="tablist" aria-label="Presentation view">
+        <button type="button" role="tab" aria-selected="false" data-panel-tab="browse">Browse</button>
+        <button type="button" role="tab" aria-selected="true" class="active" data-panel-tab="live">Live run</button>
+      </div>
+
+      <section id="browse-view" class="panel-view" hidden>
+        <div class="section-head"><span>Generated dossiers</span><span class="section-note">offline ready</span></div>
+        <div class="project-list">
+          <a class="project-card" href="/bundles/tinydb/index.html"><span class="project-icon">DB</span><span><strong>TinyDB (v4.0.0)</strong><small>14 classes · 6 relations</small></span><i class="icon" data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+          <a class="project-card" href="/bundles/click/index.html"><span class="project-icon project-icon-cyan">C</span><span><strong>Click (v8.1.8)</strong><small>81 classes · verified bundle</small></span><i class="icon" data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+        </div>
+        <div class="browse-note"><i class="icon" data-lucide="archive" aria-hidden="true"></i><span>Open a dossier to inspect its offline architecture report.</span></div>
+      </section>
+
+      <section id="live-view" class="panel-view">
+        <button class="run-button" id="run-button" type="button" data-action="triggerLiveRun">
+          <span class="button-copy"><i class="icon" data-lucide="play" aria-hidden="true"></i><span id="run-button-label">Run TinyDB</span></span><span class="shortcut">⌘ ↵</span>
+        </button>
+        <p class="run-error" id="run-error" role="alert" hidden></p>
+        <section class="panel-section">
+          <div class="section-head"><span>Pipeline stages</span><a href="/bundles/tinydb/index.html">View output</a></div>
+          <div class="timeline" id="pipeline-timeline">
+            <div class="stage complete" data-stage="extract"><span class="stage-dot"><i class="icon" data-lucide="check" aria-hidden="true"></i></span><span class="stage-label">Extracting classes</span><span class="stage-meta">1.2s</span></div>
+            <div class="stage complete" data-stage="trace"><span class="stage-dot"><i class="icon" data-lucide="check" aria-hidden="true"></i></span><span class="stage-label">Tracing runtime</span><span class="stage-meta">0.8s</span></div>
+            <div class="stage current" data-stage="verify"><span class="stage-dot"><i class="icon" data-lucide="loader-circle" aria-hidden="true"></i></span><span class="stage-label">Verifying model</span><span class="stage-meta">92%</span></div>
+            <div class="stage" data-stage="package"><span class="stage-dot"></span><span class="stage-label">Packaging bundle</span><span class="stage-meta">queued</span></div>
+          </div>
+        </section>
+        <section class="panel-section">
+          <div class="section-head"><span>Event stream</span><button class="text-button" id="reset-events" type="button">Reset</button></div>
+          <div class="event-card"><table class="event-table"><thead><tr><th scope="col">TIME</th><th scope="col">STAGE</th><th scope="col">STATUS</th></tr></thead><tbody id="event-rows">
+            <tr><td>00:01</td><td>AST scan</td><td class="ok">PASS</td></tr><tr><td>00:02</td><td>Trace map</td><td class="ok">PASS</td></tr><tr><td>00:03</td><td>Class match</td><td class="warn">92%</td></tr><tr><td>00:04</td><td>Drift check</td><td class="ok">PASS</td></tr>
+          </tbody></table></div>
+        </section>
+        <section class="panel-section history">
+          <div class="section-head"><span>Run history</span><button class="text-button" id="show-history" type="button">Show all</button></div>
+          <div class="history-list" id="history-list"><div class="history-item"><div><strong>TinyDB · latest</strong><small>loading session history…</small></div><span class="history-status">ready</span></div></div>
+        </section>
+      </section>
+    </aside>
+
+    <div class="zoom-chip" aria-live="polite"><span id="zoom-value">100%</span><button class="fit" type="button" data-zoom-action="fit">Fit diagram</button></div>
+    <div class="pan-hint"><i class="icon" data-lucide="move" aria-hidden="true"></i>drag to pan · scroll to zoom</div>
+    <div class="bottom-dock" aria-label="Canvas actions">
+      <button class="dock-button active" type="button" data-tool="select"><i class="icon" data-lucide="mouse-pointer-2" aria-hidden="true"></i><span>Select</span></button>
+      <button class="dock-button" type="button" data-tool="pan"><i class="icon" data-lucide="hand" aria-hidden="true"></i><span>Pan</span></button>
+      <button class="dock-button" type="button" data-zoom-action="in"><i class="icon" data-lucide="zoom-in" aria-hidden="true"></i><span>Zoom</span></button>
+      <button class="dock-button" type="button" data-zoom-action="fit"><i class="icon" data-lucide="maximize-2" aria-hidden="true"></i><span>Fit</span></button>
+      <span class="dock-sep" aria-hidden="true"></span>
+      <button class="dock-button run" type="button" data-action="triggerLiveRun"><i class="icon" data-lucide="play" aria-hidden="true"></i><span>Run</span></button>
+    </div>
+  </div>
+</body>
+</html>

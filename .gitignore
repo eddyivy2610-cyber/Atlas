@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Output reports & diagrams
+output/
+reports/
+*.puml
+*.mmd
+*.svg
+*.pdf
+
+# JavaScript dependencies and generated extension artifacts
+**/node_modules/
+extensions/vscode/out/
+*.vsix
+
+# Local design-tool metadata
+.kombai/
+
+# External repository fixtures
+data/repos/
