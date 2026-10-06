@@ -43,8 +43,8 @@ class PlantUMLGenerator:
 
         # 2. Relationships
         for rel in static_model.relations:
-            src = rel.source_id.split(".")[-1]
-            tgt = rel.target_id.split(".")[-1]
+            src = rel.source_id.replace(".", "_")
+            tgt = rel.target_id.replace(".", "_")
             label_str = f" : {rel.label}" if rel.label else ""
 
             if rel.relation_type == RelationType.INHERITANCE:
@@ -68,7 +68,9 @@ class PlantUMLGenerator:
     def _render_class(cls, class_ir: ClassIR) -> list[str]:
         lines = []
         stereotype = ""
-        if class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
+        if class_ir.kind == ElementKind.MODULE:
+            stereotype = " <<module>>"
+        elif class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
             stereotype = " <<interface>>"
         elif class_ir.kind == ElementKind.PROTOCOL or class_ir.is_protocol:
             stereotype = " <<protocol>>"
@@ -77,8 +79,11 @@ class PlantUMLGenerator:
         elif class_ir.kind == ElementKind.ENUM or class_ir.is_enum:
             stereotype = " <<enum>>"
 
-        name = class_ir.name
-        lines.append(f"class {name}{stereotype} {{")
+        safe_name = class_ir.name.replace(".", "_")
+        if safe_name != class_ir.name:
+            lines.append(f'class "{class_ir.name}" as {safe_name}{stereotype} {{')
+        else:
+            lines.append(f"class {safe_name}{stereotype} {{")
 
         # Attributes
         for attr in class_ir.attributes:

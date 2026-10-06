@@ -4,7 +4,7 @@ import ast
 import hashlib
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from umldoc.ir.base import (
     ElementKind,
@@ -48,6 +48,29 @@ def _unparse_ast_node(node: Optional[ast.AST]) -> Optional[str]:
         return None
 
 
+DEFAULT_EXCLUDES: Set[str] = {
+    # Virtual environments & package managers
+    "venv", ".venv", "env", ".env", "virtualenv", ".virtualenv",
+    "site-packages", "node_modules", "bower_components",
+    "lib", "lib64", "include", "scripts",
+    # Build & distribution
+    "build", "dist", "target", "out", "bin", "obj",
+    "egg-info", ".eggs",
+    # Version control & IDE
+    ".git", ".svn", ".hg", ".github", ".gitlab", ".vscode", ".idea",
+    # Caches & temporary data
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+    ".tox", "htmlcov", ".coverage", "cache", ".cache", "tmp", "temp",
+    # Non-system assets & documentation
+    "static", "templates", "public", "assets", "media", "uploads", "data",
+    "docs", "doc", "documentation", "guide", "manual",
+    # Tests & fixtures (should not be included in production system architecture)
+    "tests", "test", "testing", "fixtures", "mocks", "spec", "specs",
+    # Database migrations boilerplate
+    "migrations",
+}
+
+
 class ASTStaticExtractor:
     """Extracts static UML architectural models directly from Python source code AST."""
 
@@ -60,22 +83,54 @@ class ASTStaticExtractor:
         self._class_lookup: Dict[str, ClassIR] = {}
         self._class_calls: List[Dict[str, Any]] = []
 
-    def extract_directory(self, target_dir: Optional[str] = None, exclude_dirs: Optional[Set[str]] = None) -> StaticModelIR:
-        """Extract static architecture across all Python files in directory tree."""
+    @staticmethod
+    def is_test_file(filename: str) -> bool:
+        """Check whether a python file is a test/mock file rather than production system code."""
+        name_lower = filename.lower()
+        if not name_lower.endswith(".py"):
+            return True
+        stem = name_lower[:-3]
+        if stem.startswith("test_") or stem.endswith("_test") or stem == "test":
+            return True
+        if stem.startswith("tests_") or stem.endswith("_tests") or stem == "tests":
+            return True
+        if stem.startswith("mock_") or stem.startswith("fixture_"):
+            return True
+        if stem in ("conftest", "generate_test_data", "test_backend", "setup"):
+            return True
+        return False
+
+    def extract_directory(
+        self,
+        target_dir: Optional[str] = None,
+        exclude_dirs: Optional[Set[str]] = None,
+        filter_tests: bool = True,
+    ) -> StaticModelIR:
+        """Extract static architecture across all system Python files in directory tree."""
         search_path = Path(target_dir).resolve() if target_dir else self.root_path
-        excludes = exclude_dirs or {"venv", ".venv", "__pycache__", ".git", "build", "dist", "site-packages"}
+        excludes = {d.lower() for d in (exclude_dirs or DEFAULT_EXCLUDES)}
 
         py_files: List[Path] = []
         for root, dirs, files in os.walk(search_path):
-            dirs[:] = [d for d in dirs if d not in excludes and not d.startswith(".")]
+            # Exclude non-system directories case-insensitively and hidden folders
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".")
+                and d.lower() not in excludes
+                and not d.lower().endswith(".egg-info")
+                and not d.lower().endswith("-dist-info")
+            ]
             for file in files:
-                if file.endswith(".py"):
-                    py_files.append(Path(root) / file)
+                if not file.endswith(".py") or file.startswith("."):
+                    continue
+                if filter_tests and self.is_test_file(file):
+                    continue
+                py_files.append(Path(root) / file)
 
         for py_file in sorted(py_files):
             self.extract_file(py_file)
 
-        # Resolve inter-class structural relations
+        # Resolve inter-class and inter-module structural relations
         self._infer_relationships()
 
         return StaticModelIR(
@@ -131,6 +186,49 @@ class ASTStaticExtractor:
                 module_functions.append(fn_ir)
 
         end_line = len(source_code.splitlines()) or 1
+
+        # If this module has no classes, but defines functions or constants, synthesize an architectural Module entity
+        if not module_classes and (module_functions or module_name != "__init__"):
+            mod_attrs = self._extract_module_attributes(tree, qualified_module, rel_path)
+            mod_methods = [
+                MethodIR(
+                    id=f"{qualified_module}.{fn.name}",
+                    name=fn.name,
+                    parameters=fn.parameters,
+                    return_type=fn.return_type,
+                    decorators=fn.decorators,
+                    visibility=MemberVisibility.PUBLIC if not fn.name.startswith("_") else MemberVisibility.PRIVATE,
+                    is_async=fn.is_async,
+                    is_static=True,
+                    docstring=fn.docstring,
+                    source_location=fn.source_location,
+                )
+                for fn in module_functions
+            ]
+            display_name = qualified_module if "." in qualified_module else module_name
+            mod_class_ir = ClassIR(
+                id=qualified_module,
+                name=display_name,
+                qualified_name=qualified_module,
+                kind=ElementKind.MODULE,
+                docstring=module_docstring,
+                attributes=mod_attrs,
+                methods=mod_methods,
+                source_location=SourceLocation(
+                    file_path=rel_path,
+                    start_line=1,
+                    end_line=end_line,
+                    start_col=0,
+                    end_col=0,
+                    content_hash=_compute_hash(source_code),
+                ),
+            )
+            module_classes.append(mod_class_ir)
+            self.classes.append(mod_class_ir)
+            self._class_lookup[qualified_module] = mod_class_ir
+            self._class_lookup[module_name] = mod_class_ir
+            self._class_lookup[display_name] = mod_class_ir
+
         mod_ir = ModuleIR(
             id=qualified_module,
             name=module_name,
@@ -152,6 +250,55 @@ class ASTStaticExtractor:
         self.modules.append(mod_ir)
         return mod_ir
 
+    def _extract_module_attributes(self, tree: ast.AST, module_qual: str, file_path: str) -> List[AttributeIR]:
+        """Extract top-level module constants and variables as architectural attributes."""
+        attrs: List[AttributeIR] = []
+        for node in getattr(tree, "body", []):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        name = target.id
+                        if not (name.startswith("__") and name.endswith("__")):
+                            val_str = _unparse_ast_node(node.value) if hasattr(node, "value") else None
+                            if val_str and len(val_str) > 40:
+                                val_str = val_str[:37] + "..."
+                            attrs.append(
+                                AttributeIR(
+                                    id=f"{module_qual}.{name}",
+                                    name=name,
+                                    type_annotation=val_str,
+                                    visibility=MemberVisibility.PUBLIC if not name.startswith("_") else MemberVisibility.PRIVATE,
+                                    is_class_variable=True,
+                                    source_location=SourceLocation(
+                                        file_path=file_path,
+                                        start_line=node.lineno,
+                                        end_line=getattr(node, "end_lineno", node.lineno),
+                                        start_col=node.col_offset,
+                                    ),
+                                )
+                            )
+            elif isinstance(node, ast.AnnAssign):
+                if isinstance(node.target, ast.Name):
+                    name = node.target.id
+                    if not (name.startswith("__") and name.endswith("__")):
+                        attrs.append(
+                            AttributeIR(
+                                id=f"{module_qual}.{name}",
+                                name=name,
+                                type_annotation=_unparse_ast_node(node.annotation),
+                                default_value=_unparse_ast_node(node.value) if node.value else None,
+                                visibility=MemberVisibility.PUBLIC if not name.startswith("_") else MemberVisibility.PRIVATE,
+                                is_class_variable=True,
+                                source_location=SourceLocation(
+                                    file_path=file_path,
+                                    start_line=node.lineno,
+                                    end_line=getattr(node, "end_lineno", node.lineno),
+                                    start_col=node.col_offset,
+                                ),
+                            )
+                        )
+        return attrs[:15]
+
     def _extract_imports(self, tree: ast.AST) -> List[str]:
         """Extract import statements from module AST."""
         imports: List[str] = []
@@ -172,13 +319,16 @@ class ASTStaticExtractor:
         class_name = node.name
         qualified_name = f"{module_qual}.{class_name}"
         docstring = ast.get_docstring(node)
-        bases = [_unparse_ast_node(b) for b in node.bases if _unparse_ast_node(b)]
+        raw_bases = [_unparse_ast_node(b) for b in node.bases]
+        bases: List[str] = [b for b in raw_bases if b is not None]
 
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
-        is_abstract = "ABC" in bases or any("abstractmethod" in (d or "") for d in decorators)
-        is_protocol = "Protocol" in bases or any("Protocol" in b for b in bases)
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
+
+        is_abstract = "ABC" in bases or any("abstractmethod" in d for d in decorators)
+        is_protocol = any("Protocol" in b for b in bases)
         is_dataclass = any("dataclass" in d for d in decorators)
-        is_enum = "Enum" in bases or "IntEnum" in bases or "StrEnum" in bases
+        is_enum = any(b in ("Enum", "IntEnum", "StrEnum") for b in bases)
 
         kind = ElementKind.CLASS
         if is_protocol:
@@ -328,7 +478,8 @@ class ASTStaticExtractor:
     ) -> MethodIR:
         """Extract MethodIR details from a method node inside a class."""
         method_name = node.name
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
         is_async = isinstance(node, ast.AsyncFunctionDef)
         is_static = any("staticmethod" in d for d in decorators)
         is_classmethod = any("classmethod" in d for d in decorators)
@@ -371,7 +522,8 @@ class ASTStaticExtractor:
     ) -> FunctionIR:
         """Extract standalone module function."""
         fn_name = node.name
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
         params = self._extract_parameters(node.args)
         return_type = _unparse_ast_node(node.returns)
         node_source = _unparse_ast_node(node) or ""
@@ -537,6 +689,32 @@ class ASTStaticExtractor:
                             ),
                         )
                     )
+
+        # 5. Dependency relations between modules/classes from import statements
+        for mod in self.modules:
+            src_cls = self._find_class(mod.qualified_name) or self._find_class(mod.name)
+            if not src_cls:
+                continue
+            for imp in mod.imports:
+                tgt_cls = self._find_class(imp)
+                if not tgt_cls and "." in imp:
+                    prefix, suffix = imp.rsplit(".", 1)
+                    tgt_cls = self._find_class(prefix) or self._find_class(suffix)
+                if tgt_cls and tgt_cls.id != src_cls.id:
+                    pair = (src_cls.id, tgt_cls.id)
+                    if pair not in existing_pairs:
+                        existing_pairs.add(pair)
+                        rel_counter += 1
+                        self.relations.append(
+                            RelationIR(
+                                id=f"rel_{rel_counter}",
+                                source_id=src_cls.id,
+                                target_id=tgt_cls.id,
+                                relation_type=RelationType.DEPENDENCY,
+                                label="imports",
+                                source_location=mod.source_location,
+                            )
+                        )
 
     def _find_class(self, type_str: str) -> Optional[ClassIR]:
         """Look up known ClassIR by simple or qualified name."""

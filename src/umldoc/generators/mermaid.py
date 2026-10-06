@@ -34,8 +34,8 @@ class MermaidGenerator:
 
         # 2. Relationships
         for rel in static_model.relations:
-            src = rel.source_id.split(".")[-1]
-            tgt = rel.target_id.split(".")[-1]
+            src = rel.source_id.replace(".", "_")
+            tgt = rel.target_id.replace(".", "_")
             label_str = f" : {rel.label}" if rel.label else ""
 
             if rel.relation_type == RelationType.INHERITANCE:
@@ -56,10 +56,12 @@ class MermaidGenerator:
     @classmethod
     def _render_class(cls, class_ir: ClassIR) -> list[str]:
         lines = []
-        name = class_ir.name
-        lines.append(f"    class {name} {{")
+        safe_name = class_ir.name.replace(".", "_")
+        lines.append(f"    class {safe_name} {{")
 
-        if class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
+        if class_ir.kind == ElementKind.MODULE:
+            lines.append("        <<module>>")
+        elif class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
             lines.append("        <<interface>>")
         elif class_ir.kind == ElementKind.PROTOCOL or class_ir.is_protocol:
             lines.append("        <<protocol>>")

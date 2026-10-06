@@ -23,9 +23,19 @@ from umldoc.verifier.metrics import MetricsCalculator
 REPO_ROOT = Path(__file__).parents[1]
 OUTPUT_DIR = REPO_ROOT / "output"
 
+def _get_click_repo_path() -> Path:
+    try:
+        import click
+        p = Path(click.__file__).parent
+        if p.exists():
+            return p
+    except Exception:
+        pass
+    return REPO_ROOT / ".venv" / "Lib" / "site-packages" / "click"
+
 REPOS = {
     "tinydb": REPO_ROOT / "data" / "repos" / "tinydb" / "tinydb",
-    "click": REPO_ROOT / ".venv" / "Lib" / "site-packages" / "click",
+    "click": _get_click_repo_path(),
 }
 
 
