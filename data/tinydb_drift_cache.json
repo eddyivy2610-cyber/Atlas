@@ -1,0 +1,534 @@
+[
+  {
+    "node": "DataProxy",
+    "type": "removed",
+    "description": "Class 'DataProxy' was removed in target commit.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "StorageProxy",
+    "type": "removed",
+    "description": "Class 'StorageProxy' was removed in target commit.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "QueryImpl",
+    "type": "removed",
+    "description": "Class 'QueryImpl' was removed in target commit.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "QueryInstance",
+    "type": "added",
+    "description": "New class 'QueryInstance' added.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "MemoryStorage.read",
+    "type": "modified_signature",
+    "description": "Method signature of 'MemoryStorage.read' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'Table' from ['object'] to [].",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Table._init_last_id",
+    "type": "removed",
+    "description": "Method '_init_last_id' on 'Table' was removed.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.process_elements",
+    "type": "removed",
+    "description": "Method 'process_elements' on 'Table' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Table._read",
+    "type": "removed",
+    "description": "Method '_read' on 'Table' was removed.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table._write",
+    "type": "removed",
+    "description": "Method '_write' on 'Table' was removed.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.write_back",
+    "type": "removed",
+    "description": "Method 'write_back' on 'Table' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Table.purge",
+    "type": "removed",
+    "description": "Method 'purge' on 'Table' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Table.storage",
+    "type": "added",
+    "description": "New method 'storage' added to 'Table'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.truncate",
+    "type": "added",
+    "description": "New method 'truncate' added to 'Table'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table._read_table",
+    "type": "added",
+    "description": "New method '_read_table' added to 'Table'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table._update_table",
+    "type": "added",
+    "description": "New method '_update_table' added to 'Table'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.all",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.all' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.insert",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.insert' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.upsert",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.upsert' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.search",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.search' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.name",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.name' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.count",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.count' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.remove",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.remove' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.__iter__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.__iter__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.get",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.get' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.contains",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.contains' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.clear_cache",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.clear_cache' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.insert_multiple",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.insert_multiple' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Table.update",
+    "type": "modified_signature",
+    "description": "Method signature of 'Table.update' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Document.eid",
+    "type": "removed",
+    "description": "Method 'eid' on 'Document' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Document.__init__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Document.__init__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Storage",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'Storage' from ['with_metaclass(ABCMeta, object)'] to ['ABC'].",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Storage.close",
+    "type": "modified_signature",
+    "description": "Method signature of 'Storage.close' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Storage.write",
+    "type": "modified_signature",
+    "description": "Method signature of 'Storage.write' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Storage.read",
+    "type": "modified_signature",
+    "description": "Method signature of 'Storage.read' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Middleware",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'Middleware' from ['object'] to [].",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "Query",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'Query' from ['QueryImpl'] to ['QueryInstance'].",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query._prepare_test",
+    "type": "removed",
+    "description": "Method '_prepare_test' on 'Query' was removed.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.__getitem__",
+    "type": "added",
+    "description": "New method '__getitem__' added to 'Query'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.__le__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.__le__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.all",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.all' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.one_of",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.one_of' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.search",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.search' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.matches",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.matches' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.__gt__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.__gt__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.any",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.any' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.__lt__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.__lt__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.test",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.test' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.__ge__",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.__ge__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query.exists",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query.exists' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "Query._generate_test",
+    "type": "modified_signature",
+    "description": "Method signature of 'Query._generate_test' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'TinyDB' from ['object'] to [].",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "TinyDB.purge_tables",
+    "type": "removed",
+    "description": "Method 'purge_tables' on 'TinyDB' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "TinyDB.purge_table",
+    "type": "removed",
+    "description": "Method 'purge_table' on 'TinyDB' was removed.",
+    "severity": "BREAKING",
+    "is_breaking": true
+  },
+  {
+    "node": "TinyDB.drop_tables",
+    "type": "added",
+    "description": "New method 'drop_tables' added to 'TinyDB'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.drop_table",
+    "type": "added",
+    "description": "New method 'drop_table' added to 'TinyDB'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.storage",
+    "type": "modified_signature",
+    "description": "Method signature of 'TinyDB.storage' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.table",
+    "type": "modified_signature",
+    "description": "Method signature of 'TinyDB.table' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.tables",
+    "type": "modified_signature",
+    "description": "Method signature of 'TinyDB.tables' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.__iter__",
+    "type": "modified_signature",
+    "description": "Method signature of 'TinyDB.__iter__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "TinyDB.close",
+    "type": "modified_signature",
+    "description": "Method signature of 'TinyDB.close' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "FrozenDict.update",
+    "type": "added",
+    "description": "New method 'update' added to 'FrozenDict'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "FrozenDict.pop",
+    "type": "added",
+    "description": "New method 'pop' added to 'FrozenDict'.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache",
+    "type": "modified_relation",
+    "description": "Inheritance bases changed for 'LRUCache' from [] to ['abc.MutableMapping', 'Generic[K, V]'].",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.clear",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.clear' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.lru",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.lru' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__contains__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__contains__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.length",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.length' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__iter__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__iter__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__len__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__len__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.get",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.get' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__delitem__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__delitem__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__setitem__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__setitem__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "LRUCache.__getitem__",
+    "type": "modified_signature",
+    "description": "Method signature of 'LRUCache.__getitem__' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "JSONStorage.read",
+    "type": "modified_signature",
+    "description": "Method signature of 'JSONStorage.read' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  },
+  {
+    "node": "JSONStorage.close",
+    "type": "modified_signature",
+    "description": "Method signature of 'JSONStorage.close' modified.",
+    "severity": "CHANGED",
+    "is_breaking": false
+  }
+]

@@ -1,0 +1,288 @@
+/* ==========================================================================
+   FLOATING DIAGRAM CANVAS LEGEND
+   Interactive floating guide for UML connectors, entity stereotypes & status
+   ========================================================================== */
+
+.diag-canvas-legend {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 45;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  user-select: none;
+  font-family: inherit;
+  min-width: 260px;
+  max-width: 320px;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .diag-canvas-legend {
+  background: rgba(15, 15, 15, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* Collapsed Mini State */
+.diag-canvas-legend.is-collapsed .diag-legend-body {
+  display: none;
+}
+
+.diag-canvas-legend.is-collapsed {
+  min-width: auto;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+.diag-canvas-legend.is-collapsed .diag-legend-header {
+  border-bottom: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+
+.diag-canvas-legend.is-collapsed .diag-legend-header:hover {
+  background: var(--bg-subtle);
+}
+
+/* Header */
+.diag-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 8px;
+}
+
+.diag-legend-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diag-legend-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--primary-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="dark"] .diag-legend-icon {
+  color: #38bdf8;
+}
+
+.diag-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.diag-legend-type-pill {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(9, 12, 155, 0.08);
+  color: var(--primary-bg);
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .diag-legend-type-pill {
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+}
+
+.diag-legend-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diag-legend-toggle-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.diag-legend-toggle-btn svg {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.diag-canvas-legend.is-collapsed .diag-legend-toggle-btn svg {
+  transform: rotate(180deg);
+}
+
+/* Body & Grid */
+.diag-legend-body {
+  padding: 10px 14px 12px;
+}
+
+.diag-legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.diag-legend-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diag-legend-col-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.diag-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+/* Markers & Line indicators */
+.legend-symbol-wrapper {
+  width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+
+.legend-line--assoc {
+  background: var(--text-primary);
+}
+
+.legend-line--dep {
+  background: repeating-linear-gradient(90deg, var(--text-secondary), var(--text-secondary) 3px, transparent 3px, transparent 6px);
+}
+
+.legend-symbol {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.legend-symbol svg {
+  width: 22px;
+  height: 12px;
+  overflow: visible;
+}
+
+/* Swatches */
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+}
+
+.legend-swatch--class {
+  background: #e0f2fe;
+  border-color: #0284c7;
+}
+
+.legend-swatch--interface {
+  background: #ede9fe;
+  border-color: #7c3aed;
+}
+
+.legend-swatch--enum {
+  background: #fdf2f8;
+  border-color: #db2777;
+}
+
+.legend-swatch--service {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
+
+.legend-swatch--gateway {
+  background: #ffedd5;
+  border-color: #ea580c;
+}
+
+.legend-swatch--infra {
+  background: #f1f5f9;
+  border-color: #475467;
+}
+
+.legend-swatch--pkg-root {
+  background: #fef08a;
+  border-color: #ca8a04;
+}
+
+.legend-swatch--pkg-box {
+  background: #e0f2fe;
+  border-color: #0284c7;
+}
+
+.legend-swatch--pkg-module {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.legend-swatch--seq-act {
+  background: #dbeafe;
+  border-color: #2563eb;
+}
+
+/* Icons */
+.legend-status-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.legend-status-icon--verified {
+  color: #16a34a;
+}
+
+.legend-status-icon--changed {
+  color: #d97706;
+}
+
+.legend-status-icon--mismatch {
+  color: #dc2626;
+}
+
+.legend-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -23,6 +23,8 @@ class ParticipantIR(BaseModel):
     class_name: Optional[str] = Field(default=None, description="Class name if object instance")
     module_name: Optional[str] = Field(default=None, description="Module where participant is declared")
     instance_id: Optional[int] = Field(default=None, description="Object memory ID / id() to distinguish instances")
+    file: Optional[str] = Field(default=None, description="Source file location where participant is defined")
+    kind: Optional[str] = Field(default=None, description="Participant architectural kind: actor, service, class, module, data")
 
 
 class InteractionIR(BaseModel):
@@ -41,6 +43,7 @@ class InteractionIR(BaseModel):
     call_depth: int = Field(default=0, ge=0, description="Stack depth of the call activation")
     duration_ms: Optional[float] = Field(default=None, ge=0.0, description="Elapsed execution time in milliseconds")
     line_number: Optional[int] = Field(default=None, description="Source code line triggering the interaction")
+    file: Optional[str] = Field(default=None, description="Source code file path triggering the interaction")
 
 
 class TraceSessionIR(BaseModel):

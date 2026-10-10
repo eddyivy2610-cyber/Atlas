@@ -44,8 +44,9 @@ class BundlePackager:
         index_file = output_dir / "index.html"
         index_file.write_text(html_content, encoding="utf-8")
 
-        # 2. Write PlantUML, Mermaid, and Native Vector SVG Class Diagrams
+        # 2. Write PlantUML, Mermaid, and Native Vector SVG Diagrams (Class, Package, Component)
         if document_ir.static_model:
+            # Class Diagram
             puml_text = PlantUMLGenerator.generate_class_diagram(document_ir.static_model, title=f"{project_name} Architecture")
             (output_dir / "architecture.puml").write_text(puml_text, encoding="utf-8")
 
@@ -54,6 +55,26 @@ class BundlePackager:
 
             svg_text = SVGDiagramRenderer.render_class_diagram(document_ir.static_model, title=f"{project_name} Architecture")
             (output_dir / "architecture.svg").write_text(svg_text, encoding="utf-8")
+
+            # Package Dependencies Diagram
+            puml_pkg = PlantUMLGenerator.generate_package_diagram(document_ir.static_model, title=f"{project_name} Packages")
+            (output_dir / "packages.puml").write_text(puml_pkg, encoding="utf-8")
+
+            mmd_pkg = MermaidGenerator.generate_package_diagram(document_ir.static_model, title=f"{project_name} Packages")
+            (output_dir / "packages.mmd").write_text(mmd_pkg, encoding="utf-8")
+
+            svg_pkg = SVGDiagramRenderer.render_package_diagram(document_ir.static_model, title=f"{project_name} Packages")
+            (output_dir / "packages.svg").write_text(svg_pkg, encoding="utf-8")
+
+            # Component Architecture Diagram
+            puml_comp = PlantUMLGenerator.generate_component_diagram(document_ir.static_model, title=f"{project_name} Components")
+            (output_dir / "components.puml").write_text(puml_comp, encoding="utf-8")
+
+            mmd_comp = MermaidGenerator.generate_component_diagram(document_ir.static_model, title=f"{project_name} Components")
+            (output_dir / "components.mmd").write_text(mmd_comp, encoding="utf-8")
+
+            svg_comp = SVGDiagramRenderer.render_component_diagram(document_ir.static_model, title=f"{project_name} Components")
+            (output_dir / "components.svg").write_text(svg_comp, encoding="utf-8")
 
         # 3. Write Sequence Diagrams if trace sessions exist
         if document_ir.dynamic_model and document_ir.dynamic_model.sessions:

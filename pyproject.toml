@@ -15,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 umldoc = "umldoc.cli:main"
+atlas = "umldoc.cli:main"
 
 [project.optional-dependencies]
 dev = [

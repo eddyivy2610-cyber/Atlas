@@ -135,6 +135,113 @@ def test_svg_renderer_empty_model():
     root = ET.fromstring(svg_text)
     assert root.tag.endswith("svg")
 
+    svg_pkg = SVGDiagramRenderer.render_package_diagram(empty_model)
+    root_pkg = ET.fromstring(svg_pkg)
+    assert root_pkg.tag.endswith("svg")
+
+    svg_comp = SVGDiagramRenderer.render_component_diagram(empty_model)
+    root_comp = ET.fromstring(svg_comp)
+    assert root_comp.tag.endswith("svg")
+
+
+def test_svg_package_and_component_rendering():
+    from umldoc.ir.static_model import (
+        ComponentModelIR,
+        ComponentConnectorIR,
+        ComponentNodeIR,
+        PackageModelIR,
+        PackageDependencyIR,
+        PackageNodeIR,
+    )
+
+    pkg_model = PackageModelIR(
+        packages=[
+            PackageNodeIR(
+                id="pkg_api",
+                name="api",
+                path="api/",
+                modules=["api.router", "api.handlers"],
+                classes=["UserRouter"],
+                functions_count=2,
+                afferent_coupling=0,
+                efferent_coupling=1,
+                instability=1.0,
+            ),
+            PackageNodeIR(
+                id="pkg_service",
+                name="service",
+                path="service/",
+                modules=["service.user"],
+                classes=["UserService"],
+                functions_count=1,
+                afferent_coupling=1,
+                efferent_coupling=0,
+                instability=0.0,
+            ),
+        ],
+        dependencies=[
+            PackageDependencyIR(
+                id="dep_1",
+                source_package="api",
+                target_package="service",
+                import_count=2,
+                imported_symbols=["service.user"],
+                is_cyclic=False,
+            )
+        ],
+    )
+
+    comp_model = ComponentModelIR(
+        components=[
+            ComponentNodeIR(
+                id="comp_UserRouter",
+                name="UserRouter",
+                stereotype="«controller»",
+                tier="Presentation / API",
+                provided_interfaces=["get_user", "create_user"],
+            ),
+            ComponentNodeIR(
+                id="comp_UserService",
+                name="UserService",
+                stereotype="«service»",
+                tier="Domain Service",
+                provided_interfaces=["find_by_id"],
+            ),
+        ],
+        connectors=[
+            ComponentConnectorIR(
+                id="conn_1",
+                source_id="comp_UserRouter",
+                target_id="comp_UserService",
+                label="uses",
+            )
+        ],
+    )
+
+    model = StaticModelIR(
+        project_name="TestApp",
+        classes=[],
+        relations=[],
+        packages=pkg_model,
+        components=comp_model,
+    )
+
+    # Validate package SVG
+    svg_pkg = SVGDiagramRenderer.render_package_diagram(model, title="TestApp Packages")
+    root_pkg = ET.fromstring(svg_pkg)
+    assert root_pkg.tag.endswith("svg")
+    assert "viewBox" in root_pkg.attrib
+    assert any("api" in (elem.text or "") for elem in root_pkg.iter())
+    assert any("service" in (elem.text or "") for elem in root_pkg.iter())
+
+    # Validate component SVG
+    svg_comp = SVGDiagramRenderer.render_component_diagram(model, title="TestApp Components")
+    root_comp = ET.fromstring(svg_comp)
+    assert root_comp.tag.endswith("svg")
+    assert "viewBox" in root_comp.attrib
+    assert any("UserRouter" in (elem.text or "") for elem in root_comp.iter())
+    assert any("UserService" in (elem.text or "") for elem in root_comp.iter())
+
 
 def test_bundled_svg_files_are_valid_xml():
     """Verify that all packaged SVG files in output/bundles are well-formed XML."""
@@ -150,3 +257,140 @@ def test_bundled_svg_files_are_valid_xml():
         root = ET.fromstring(svg_content)
         assert root.tag.endswith("svg")
         assert "viewBox" in root.attrib
+
+
+def test_svg_career_compass_full_details_export():
+    """Verify that architecture diagrams export with all details (no empty cards, full swimlanes, operations & purpose)."""
+    from umldoc.ir.static_model import ComponentModelIR, ComponentNodeIR, ComponentConnectorIR
+
+    components = [
+        ComponentNodeIR(
+            id="comp_desktop_launcher",
+            name="desktop_launcher",
+            stereotype="«entrypoint»",
+            role="Entry Point",
+            tier="Entry Points",
+            purpose="Launches desktop application",
+            functions_count=2,
+            dependencies_count=1,
+        ),
+        ComponentNodeIR(
+            id="comp_run",
+            name="run",
+            stereotype="«entrypoint»",
+            role="Entry Point",
+            tier="Entry Points",
+            purpose="CLI / Script entry point",
+            functions_count=3,
+            dependencies_count=1,
+        ),
+        ComponentNodeIR(
+            id="comp_app",
+            name="app",
+            stereotype="«controller»",
+            role="Controller / Presentation",
+            tier="Presentation / Controller",
+            purpose="Flask application (web interface)",
+            functions_count=8,
+            dependencies_count=4,
+        ),
+        ComponentNodeIR(
+            id="comp_core_app_paths",
+            name="core.app_paths",
+            stereotype="«infrastructure»",
+            role="Infrastructure",
+            tier="Presentation / Controller",
+            purpose="Runtime paths and directories",
+            functions_count=4,
+            dependencies_count=0,
+        ),
+        ComponentNodeIR(
+            id="comp_core_file_processor",
+            name="core.file_processor",
+            stereotype="«service»",
+            role="Application Service",
+            tier="Application Services",
+            purpose="Parse and validate student files",
+            functions_count=6,
+            dependencies_count=2,
+        ),
+        ComponentNodeIR(
+            id="comp_core_recommendation_engine",
+            name="core.recommendation_engine",
+            stereotype="«service»",
+            role="Application Service",
+            tier="Application Services",
+            purpose="Evaluate student and generate recommendations",
+            functions_count=5,
+            dependencies_count=1,
+        ),
+        ComponentNodeIR(
+            id="comp_core_questionnaire_processor",
+            name="core.questionnaire_processor",
+            stereotype="«service»",
+            role="Application Service",
+            tier="Application Services",
+            purpose="Process survey responses and scores",
+            functions_count=4,
+            dependencies_count=1,
+        ),
+        ComponentNodeIR(
+            id="comp_core_database",
+            name="core.database",
+            stereotype="«database»",
+            role="Persistence",
+            tier="Infrastructure / Data",
+            purpose="SQLite schema and student records",
+            functions_count=7,
+            dependencies_count=0,
+        ),
+    ]
+
+    connectors = [
+        ComponentConnectorIR(id="c1", source_id="comp_desktop_launcher", target_id="comp_app", label="starts"),
+        ComponentConnectorIR(id="c2", source_id="comp_run", target_id="comp_app", label="starts"),
+        ComponentConnectorIR(id="c3", source_id="comp_app", target_id="comp_core_recommendation_engine", label="uses"),
+    ]
+
+    model = StaticModelIR(
+        project_name="Career Compass",
+        classes=[],
+        relations=[],
+        components=ComponentModelIR(components=components, connectors=connectors),
+    )
+
+    svg_text = SVGDiagramRenderer.render_component_diagram(model, title="Career Compass Architecture", clean_export=True)
+    root = ET.fromstring(svg_text)
+    assert root.tag.endswith("svg")
+
+    all_texts = [elem.text for elem in root.iter() if elem.text]
+    all_text_blob = " ".join(all_texts)
+
+    # 1. Swimlanes are present
+    assert "ENTRY POINTS" in all_text_blob
+    assert "PRESENTATION / CONTROLLER" in all_text_blob
+    assert "APPLICATION SERVICES" in all_text_blob
+    assert "INFRASTRUCTURE / DATA" in all_text_blob
+
+    # 2. Component titles and stereotypes are present
+    assert "desktop_launcher" in all_text_blob
+    assert "core.recommendation_engine" in all_text_blob
+    assert "core.database" in all_text_blob
+    assert "«service»" in all_text_blob or "service" in all_text_blob.lower()
+
+    # 3. Purpose subtitles are present (not empty)
+    assert "Evaluate student and generate recommendations" in all_text_blob
+    assert "Flask application" in all_text_blob
+
+    # 4. Operations & dependencies details are present
+    assert "operations •" in all_text_blob
+    assert "dependencies" in all_text_blob
+
+    # 5. External services box is present
+    assert "EXTERNAL SERVICES" in all_text_blob
+    assert "File System" in all_text_blob
+
+    # 6. Legend is present
+    assert "«database» Database" in all_text_blob
+    assert "Direct Call / Use" in all_text_blob
+

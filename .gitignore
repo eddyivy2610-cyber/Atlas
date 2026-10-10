@@ -34,14 +34,20 @@ reports/
 *.mmd
 *.svg
 *.pdf
+!src/umldoc/server/static/**/*.svg
 
 # JavaScript dependencies and generated extension artifacts
 **/node_modules/
 extensions/vscode/out/
 *.vsix
 
-# Local design-tool metadata
+# Local design-tool metadata & IDE workspaces
 .kombai/
+*.code-workspace
+
+# Temporary scratch & test artifacts
+scratch/
+scratch_*
 
 # External repository fixtures
 data/repos/

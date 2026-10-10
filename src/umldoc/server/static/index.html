@@ -1,213 +1,1648 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#030611">
-  <title>UMLdoc Presentation &amp; Interaction Layer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css">
-  <script defer src="https://unpkg.com/lucide@latest"></script>
-  <script defer src="/static/app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ATLAS — Architecture & UML Studio</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/images/favicon-192x192.png" />
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="/static/styles/tokens.css" />
+  <link rel="stylesheet" href="/static/styles/topbar.css" />
+  <link rel="stylesheet" href="/static/styles/canvas.css" />
+  <link rel="stylesheet" href="/static/styles/logs.css" />
+  <link rel="stylesheet" href="/static/styles/legend.css" />
+  <link rel="stylesheet" href="/static/styles/setup.css" />
+  <link rel="stylesheet" href="/static/styles/inspector.css" />
+  <link rel="stylesheet" href="/static/styles/reports.css" />
+
+  <script src="/static/vendor/lucide.min.js"></script>
+  <script>
+    if (typeof lucide === 'undefined') {
+      document.write('<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"><\/script>');
+    }
+  </script>
+
 </head>
+
 <body>
-  <div class="workspace" id="workspace">
-    <header class="topbar">
-      <div class="top-left">
-        <div class="brand-mark" aria-label="UMLdoc" role="img">
-          <span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <button class="top-pill" type="button" data-menu-trigger="workspace-menu" aria-haspopup="menu" aria-expanded="false">
-          <i class="icon" data-lucide="network" aria-hidden="true"></i>
-          <span>Logical</span>
-          <i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+
+  <!-- ========================================================================
+       COMPONENT: TOPBAR & CONTEXTUAL SUBHEADER
+       ======================================================================== -->
+  <header class="app-header onboarding-mode" id="appHeader">
+
+    <!-- ── ROW 1: PRIMARY TOPBAR ── -->
+    <div class="topbar-primary">
+      <div class="topbar-primary__left">
+        <!-- Logo / Brand with ATLAS Official Vector Logo -->
+        <a class="topbar-brand" href="/" title="ATLAS Home">
+          <img src="/static/images/atlas-logo-light.svg"
+            onerror="this.onerror=null; this.src='/static/images/atlas-logo-light.png';"
+            class="topbar-brand__logo topbar-brand__logo--light" alt="ATLAS" />
+          <img src="/static/images/atlas-logo-dark.svg"
+            onerror="this.onerror=null; this.src='/static/images/atlas-logo-dark.png';"
+            class="topbar-brand__logo topbar-brand__logo--dark" alt="ATLAS" />
+        </a>
+
+        <!-- Hamburger Menu Button (hidden on PC screens) -->
+        <button class="btn-icon-subtle btn-menu-toggle" title="Toggle Navigation Sidebar" id="btnMenuToggle">
+          <i data-lucide="menu"></i>
         </button>
-        <div class="popover menu" id="workspace-menu" role="menu" hidden>
-          <button type="button" role="menuitem" class="menu-item is-selected" data-view-mode="logical">Logical view <span>⌘ 1</span></button>
-          <button type="button" role="menuitem" class="menu-item" data-view-mode="physical">Physical view <span>⌘ 2</span></button>
+      </div>
+
+      <!-- Navigation Pill Dropdowns (Centered) -->
+      <nav class="topbar-nav" id="topbarNav">
+
+        <!-- Diagrams Dropdown -->
+        <div class="nav-pill-dropdown">
+          <button class="nav-pill nav-pill--active" data-dropdown-target="menuDiagrams" data-view="diagrams">
+            <span>Diagrams</span>
+            <i data-lucide="chevron-down" class="chevron"></i>
+          </button>
+          <div class="dropdown-menu" id="menuDiagrams">
+            <button class="dropdown-item" data-diagram-type="class">
+              <i data-lucide="box"></i>
+              <span>Class Diagram</span>
+            </button>
+            <button class="dropdown-item" data-diagram-type="sequence">
+              <i data-lucide="git-commit"></i>
+              <span>Sequence Diagram</span>
+            </button>
+            <button class="dropdown-item" data-diagram-type="architecture">
+              <i data-lucide="network"></i>
+              <span>Architecture Graph</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" data-diagram-type="dependencies">
+              <i data-lucide="share-2"></i>
+              <span>Package Dependencies</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <button class="center-title" type="button" data-menu-trigger="project-menu" aria-haspopup="menu" aria-expanded="false">
-        <strong>UMLdoc</strong><span class="slash">/</span><span>Live presentation</span>
-        <i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
-      </button>
-      <div class="popover menu project-menu" id="project-menu" role="menu" hidden>
-        <button type="button" role="menuitem" class="menu-item is-selected">TinyDB · v4.0.0 <span>active</span></button>
-        <a role="menuitem" class="menu-item" href="/bundles/click/index.html">Click · v8.1.8 <span>open dossier</span></a>
-      </div>
+        <!-- Pipeline Dropdown 
+          <div class="nav-pill-dropdown">
+            <button class="nav-pill" data-dropdown-target="menuPipeline" data-view="pipeline">
+              <span>Pipeline</span>
+              <i data-lucide="chevron-down" class="chevron"></i>
+            </button>
+            <div class="dropdown-menu" id="menuPipeline">
+              <button class="dropdown-item">
+                <i data-lucide="code-2"></i>
+                <span>01 — AST Extraction</span>
+              </button>
+              <button class="dropdown-item">
+                <i data-lucide="play-circle"></i>
+                <span>02 — Dynamic Trace</span>
+              </button>
+              <button class="dropdown-item">
+                <i data-lucide="sparkles"></i>
+                <span>03 — LLM Distillation</span>
+              </button>
+              <button class="dropdown-item">
+                <i data-lucide="shield-check"></i>
+                <span>04 — Dual-Ground Verifier</span>
+              </button>
+              <button class="dropdown-item">
+                <i data-lucide="git-pull-request"></i>
+                <span>05 — Drift Analysis</span>
+              </button>
+            </div>
+          </div>-->
 
-      <div class="top-right">
-        <button class="top-icon" id="search-toggle" type="button" aria-label="Search architecture" aria-expanded="false" aria-controls="search-popover">
-          <i class="icon" data-lucide="search" aria-hidden="true"></i>
+        <!-- Workspaces Dropdown -->
+        <div class="nav-pill-dropdown">
+          <button class="nav-pill" data-dropdown-target="menuWorkspaces">
+            <span>Workspaces</span>
+            <i data-lucide="chevron-down" class="chevron"></i>
+          </button>
+          <div class="dropdown-menu" id="menuWorkspaces">
+            <button class="dropdown-item" data-workspace-select="umldoc" data-workspace-path="src/umldoc">
+              <i data-lucide="cpu"></i>
+              <span>UMLdoc Engine (Native)</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btnNewWorkspace">
+              <i data-lucide="plus-circle"></i>
+              <span>+ New Workspace...</span>
+            </button>
+            <button class="dropdown-item" id="btnOpenLocalWorkspace">
+              <i data-lucide="folder-plus"></i>
+              <span>Open Local Folder...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Verification Dropdown 
+          <div class="nav-pill-dropdown">
+            <button class="nav-pill" data-dropdown-target="menuVerification" data-view="reports"
+              data-report-anchor="secVerification">
+              <span>Verification</span>
+              <i data-lucide="chevron-down" class="chevron"></i>
+            </button>
+            <div class="dropdown-menu" id="menuVerification">
+              <button class="dropdown-item" data-report-anchor="secVerification">
+                <i data-lucide="check-circle-2"></i>
+                <span>Ground Truth Metrics</span>
+              </button>
+              <button class="dropdown-item" data-report-anchor="secVerification">
+                <i data-lucide="alert-triangle"></i>
+                <span>Hallucination Audit</span>
+              </button>
+              <button class="dropdown-item" data-report-anchor="secDrift">
+                <i data-lucide="clock"></i>
+                <span>Commit Drift Diff</span>
+              </button>
+            </div>
+          </div>-->
+
+        <!-- Reports Dropdown -->
+        <div class="nav-pill-dropdown">
+          <button class="nav-pill" data-dropdown-target="menuReports" data-view="reports"
+            data-report-anchor="secRunSummary">
+            <span>Reports</span>
+            <i data-lucide="chevron-down" class="chevron"></i>
+          </button>
+          <div class="dropdown-menu" id="menuReports">
+            <button class="dropdown-item" data-report-anchor="secRunSummary">
+              <i data-lucide="file-text"></i>
+              <span>Run Summary Dossier</span>
+            </button>
+            <button class="dropdown-item" data-report-anchor="secVerification">
+              <i data-lucide="shield-check"></i>
+              <span>Verification Report</span>
+            </button>
+            <button class="dropdown-item" data-report-anchor="secDrift">
+              <i data-lucide="git-pull-request"></i>
+              <span>Drift Report</span>
+            </button>
+            <button class="dropdown-item" data-report-anchor="secPerformance">
+              <i data-lucide="gauge"></i>
+              <span>Performance Benchmarks</span>
+            </button>
+            <button class="dropdown-item" data-report-anchor="secExportBundle">
+              <i data-lucide="download"></i>
+              <span>Evidence Bundle Export</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Settings Dropdown -->
+        <div class="nav-pill-dropdown">
+          <button class="nav-pill" data-dropdown-target="menuSettings">
+            <span>Settings</span>
+            <i data-lucide="chevron-down" class="chevron"></i>
+          </button>
+          <div class="dropdown-menu" id="menuSettings">
+            <button class="dropdown-item">
+              <i data-lucide="sliders"></i>
+              <span>Pipeline Tolerances</span>
+            </button>
+            <button class="dropdown-item">
+              <i data-lucide="key"></i>
+              <span>LLM API Keys</span>
+            </button>
+          </div>
+        </div>
+
+      </nav>
+
+      <!-- Right Actions: Notifications, Theme, Profile -->
+      <div class="topbar-primary__right">
+
+        <!-- Theme Toggle -->
+        <button class="btn-icon-subtle" id="themeToggleBtn" title="Toggle Light / Dark Mode">
+          <i data-lucide="sun" id="themeSunIcon" style="display: none;"></i>
+          <i data-lucide="moon" id="themeMoonIcon"></i>
         </button>
-        <div class="avatar-stack" aria-label="8 collaborators">
-          <span class="avatar avatar-blue"></span><span class="avatar avatar-gold"></span><span class="avatar avatar-mint"></span><span class="avatar avatar-violet"></span>
-          <span class="avatar-count">+8</span>
-        </div>
-        <button class="profile-pill" type="button" data-menu-trigger="profile-menu" aria-haspopup="menu" aria-expanded="false">
-          <span class="avatar avatar-profile"></span><span>Class 1</span><i class="chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+
+        <!-- Notification / Info -->
+        <button class="btn-icon-subtle" title="Notifications & Logs">
+          <i data-lucide="bell"></i>
         </button>
-        <div class="popover menu profile-menu" id="profile-menu" role="menu" hidden>
-          <button type="button" role="menuitem" class="menu-item">Presentation settings <span>⌘ ,</span></button>
-          <button type="button" role="menuitem" class="menu-item">Keyboard shortcuts <span>?</span></button>
-        </div>
-      </div>
 
-      <div class="popover search-popover" id="search-popover" role="dialog" aria-label="Search architecture" hidden>
-        <form id="search-form" class="search-form">
-          <i class="icon" data-lucide="search" aria-hidden="true"></i>
-          <input id="search-input" type="search" autocomplete="off" placeholder="Filter classes and stages" aria-label="Filter classes and stages">
-          <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">Esc</button>
-        </form>
-        <p class="search-hint">Try <kbd>TinyDB</kbd>, <kbd>Drift</kbd>, or <kbd>bundle</kbd></p>
+        <!-- User Account Button -->
+        <button class="avatar-btn" title="User Account" id="btnUserAccount">
+          <i data-lucide="user"></i>
+        </button>
       </div>
-    </header>
-
-    <div class="mode-switch" role="tablist" aria-label="Workspace mode">
-      <button class="mode active" type="button" role="tab" aria-selected="true" data-mode="realtime"><i class="icon" data-lucide="clock-3" aria-hidden="true"></i>Real time</button>
-      <button class="mode" type="button" role="tab" aria-selected="false" data-mode="simulation"><i class="icon" data-lucide="timer" aria-hidden="true"></i>Simulation</button>
     </div>
 
-    <aside class="toolbar" aria-label="Diagram tools">
-      <button class="tool active" type="button" data-tool="select" aria-label="Select tool" aria-pressed="true" data-tooltip="Select (Esc)"><i class="icon" data-lucide="scan-dashed" aria-hidden="true"></i></button>
-      <button class="tool" type="button" data-tool="inspect" aria-label="Inspect tool" aria-pressed="false" data-tooltip="Inspect (I)"><i class="icon" data-lucide="search" aria-hidden="true"></i></button>
-      <button class="tool" type="button" data-tool="delete" aria-label="Delete tool" aria-pressed="false" data-tooltip="Delete (Del)"><i class="icon" data-lucide="circle-x" aria-hidden="true"></i></button>
-      <button class="tool" type="button" data-tool="resize" aria-label="Resize tool" aria-pressed="false" data-tooltip="Resize (R)"><i class="icon" data-lucide="scan" aria-hidden="true"></i></button>
-      <button class="tool" type="button" data-tool="note" aria-label="Add note" aria-pressed="false" data-tooltip="Add note (N)"><i class="icon" data-lucide="sticky-note" aria-hidden="true"></i></button>
-      <span class="tool-divider" aria-hidden="true"></span>
-      <button class="tool" type="button" data-zoom-action="in" aria-label="Zoom in" data-tooltip="Zoom in (+)"><i class="icon" data-lucide="zoom-in" aria-hidden="true"></i></button>
-      <button class="tool" type="button" data-zoom-action="out" aria-label="Zoom out" data-tooltip="Zoom out (-)"><i class="icon" data-lucide="zoom-out" aria-hidden="true"></i></button>
-      <span class="tool-divider" aria-hidden="true"></span>
-      <a class="tool" href="/bundles/tinydb.zip" aria-label="Download TinyDB bundle" data-tooltip="Download bundle"><i class="icon" data-lucide="download" aria-hidden="true"></i></a>
-      <a class="tool" href="/bundles/tinydb/index.html" aria-label="Open TinyDB report" data-tooltip="Open report"><i class="icon" data-lucide="panel-top-open" aria-hidden="true"></i></a>
-    </aside>
+    <!-- ── ROW 2: COMPACT SECONDARY TOPBAR (PROJECT, DIAGRAM SWITCHER, ACTIONS) ── -->
+    <div class="topbar-secondary">
 
-    <main class="graph-zone" id="graph-zone" aria-label="TinyDB architecture graph">
-      <div class="graph-title">
-        <span class="status-dot status-live" aria-hidden="true"></span>
-        <div class="copy"><h1>Architecture graph</h1><p>tinydb · verified source model</p></div>
+      <!-- Left: Back button + Project Identifier + Vivid Badges -->
+      <div class="topbar-secondary__left">
+        <button class="btn-circle" id="btnNavBack" title="Return to Dashboard">
+          <i data-lucide="arrow-left"></i>
+        </button>
+
+        <span class="project-identifier" id="projectIdentifier" data-testid="diagHeaderMainTitle">UMLDOC</span><span
+          id="diagHeaderMainTitle" style="display: none;"></span>
+
+        <div class="badge-group">
+          <span class="vivid-badge vivid-badge--yellow" id="badgeClassesCount">— CLASSES</span>
+          <span class="vivid-badge vivid-badge--green" id="badgeVerificationStatus">VERIFIED</span>
+          <span class="vivid-badge vivid-badge--primary" id="badgeAstRef">AST 3.11</span>
+        </div>
       </div>
 
-      <div class="diagram-layer" id="diagram-layer" aria-live="polite">
-        <div class="archive-card archive-a" aria-hidden="true"></div>
-        <div class="archive-card archive-b" aria-hidden="true"></div>
-        <div class="archive-card archive-c" aria-hidden="true"></div>
-        <div class="archive-card archive-d" aria-hidden="true"></div>
-        <div class="archive-card archive-e" aria-hidden="true"></div>
-        <div class="archive-card archive-f" aria-hidden="true"></div>
-        <div class="orbits" aria-hidden="true">
-          <span class="orbit one"></span><span class="orbit two"></span><span class="orbit three"></span>
-          <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span><span class="spark s4"></span>
+      <!-- Center: Compact Segmented Diagram Switcher & Scope -->
+      <div class="topbar-secondary__center">
+        <div class="segmented-switcher" id="diagramTypeSwitcher">
+          <button class="segmented-btn segmented-btn--active" data-diag-type="class">
+            <i data-lucide="box"></i>
+            <span>Class</span>
+          </button>
+          <button class="segmented-btn" data-diag-type="sequence">
+            <i data-lucide="git-commit"></i>
+            <span>Sequence</span>
+          </button>
+          <button class="segmented-btn" data-diag-type="architecture">
+            <i data-lucide="network"></i>
+            <span>Architecture</span>
+          </button>
+          <button class="segmented-btn" data-diag-type="packages">
+            <i data-lucide="package-2"></i>
+            <span>Packages</span>
+          </button>
         </div>
-        <div class="graph-canvas">
-          <svg class="connections" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 820 590">
-            <line class="primary" x1="392" x2="215" y1="282" y2="155"></line>
-            <line class="primary" x1="480" x2="610" y1="282" y2="145"></line>
-            <line class="primary" x1="492" x2="685" y1="323" y2="310"></line>
-            <line class="primary" x1="478" x2="580" y1="370" y2="470"></line>
-            <line class="primary" x1="390" x2="232" y1="379" y2="478"></line>
-            <line class="dashed" x1="363" x2="107" y1="330" y2="313"></line>
-            <circle cx="392" cy="282" fill="var(--cream)" r="3"></circle><circle cx="480" cy="282" fill="var(--cyan)" r="3"></circle>
-            <circle cx="492" cy="323" fill="var(--cyan)" r="3"></circle><circle cx="478" cy="370" fill="var(--cyan)" r="3"></circle>
-            <circle cx="390" cy="379" fill="var(--cyan)" r="3"></circle>
-            <text x="283" y="208">extracts</text><text x="530" y="207">traces</text><text x="570" y="304">verifies</text>
-            <text x="519" y="431">compares</text><text x="294" y="442">packages</text><text x="185" y="300">legacy view</text>
+
+        <button class="scope-pill-btn" id="btnScopeTrigger" title="Package scope">
+          <i data-lucide="folder-git-2"></i>
+          <span id="scopeLabel">All Packages</span>
+          <i data-lucide="chevron-down"></i>
+        </button>
+      </div>
+
+      <!-- Right: Compact Filter, Layout & Action Buttons -->
+      <div class="topbar-secondary__right">
+        <!-- Filter Search -->
+        <div class="filter-search-box">
+          <i data-lucide="search"></i>
+          <input type="text" class="filter-search-input" id="filterSearchInput" placeholder="Filter symbols..." />
+        </div>
+
+        <!-- Layout Toggle (TB / LR) -->
+        <button class="layout-btn-compact" id="btnToggleLayout" title="Toggle Layout Direction (TB / LR)">
+          <i data-lucide="workflow"></i>
+          <span id="layoutLabel" style="color: var(--primary-bg);">TB</span>
+        </button>
+
+        <!-- View Options Trigger (Sliders Icon, exactly matching user screenshot) -->
+        <button class="btn-circle" id="btnViewOptions" title="View Options">
+          <i data-lucide="sliders"></i>
+        </button>
+
+        <!-- Refresh -->
+        <button class="btn-circle" id="btnRefreshPipeline" title="Refresh Project Data">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+
+        <!-- Export Diagram / Brief -->
+        <button class="btn-circle" id="btnExportBrief" title="Export HTML / JSON Bundle">
+          <i data-lucide="download"></i>
+        </button>
+
+        <!-- Primary Action: Run Pipeline -->
+        <button class="btn-primary-pill" id="btnRunPipeline" title="Run Pipeline Live">
+          <i data-lucide="play"></i>
+          <span>Run Pipeline</span>
+        </button>
+      </div>
+
+    </div>
+
+  </header>
+
+  <!-- ========================================================================
+       PAGE 1: SOURCE ONBOARDING & SETUP VIEW
+       Active initially until user creates/opens a workspace
+       ======================================================================== -->
+  <main class="setup-onboarding-view" id="setupOnboardingView">
+    <div class="setup-card" id="setupCard" role="region" aria-labelledby="setupCardTitle">
+
+      <!-- Card Header -->
+      <div class="setup-modal__header">
+        <div class="setup-modal__title-group">
+          <div class="setup-modal__eyebrow">
+            <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i>
+            <span>ATLAS Workspace Setup</span>
+          </div>
+          <h1 class="setup-modal__title" id="setupCardTitle">Create Workspace</h1>
+          <p class="setup-modal__subtitle">Connect your Python source code to extract AST models & generate verified
+            diagrams.</p>
+        </div>
+      </div>
+
+      <!-- Card Body (2-Column Grid) -->
+      <div class="setup-modal__body">
+
+        <!-- Left Column: Project Details & Source Code -->
+        <div class="setup-col">
+
+          <!-- 01 — Project details -->
+          <section class="setup-section">
+            <div class="setup-section__header">
+              <h2 class="setup-section__num">01 &mdash; Project Details</h2>
+            </div>
+
+            <div class="setup-field">
+              <label class="setup-label" for="setupWorkspaceName">Workspace Name</label>
+              <input type="text" class="setup-input" id="setupWorkspaceName"
+                placeholder="e.g. billing-engine or my-project" />
+            </div>
+
+            <div class="setup-presets">
+              <span class="setup-presets__label">Project source:</span>
+              <button type="button" class="preset-chip-btn" data-preset="careercompass" data-path="careercompass">
+                <i data-lucide="compass" style="width: 12px; height: 12px;"></i> Career Compass (Architecture)
+              </button>
+              <button type="button" class="preset-chip-btn" data-preset="umldoc" data-path="src/umldoc">
+                <i data-lucide="cpu" style="width: 12px; height: 12px;"></i> UMLdoc Engine
+              </button>
+              <button type="button" class="preset-chip-btn" data-preset="e-commerce-service" data-path="ecommerce">
+                <i data-lucide="shopping-cart" style="width: 12px; height: 12px;"></i> E-Commerce Service
+              </button>
+            </div>
+          </section>
+
+          <!-- 02 — Source code -->
+          <section class="setup-section">
+            <div class="setup-section__header">
+              <h2 class="setup-section__num">02 &mdash; Source Code</h2>
+            </div>
+
+            <!-- Source Method Switcher (Upload files vs Git repo) -->
+            <div class="setup-source-segmented">
+              <button type="button" class="setup-source-btn is-active" data-method="upload">
+                <i data-lucide="folder-up" style="width: 14px; height: 14px;"></i>
+                <span>Local Folder</span>
+              </button>
+              <button type="button" class="setup-source-btn" data-method="git">
+                <i data-lucide="git-fork" style="width: 14px; height: 14px;"></i>
+                <span>Git Repository</span>
+              </button>
+            </div>
+
+            <!-- Upload / Folder Picker Area -->
+            <div id="setupUploadArea" style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="setup-dropzone" id="setupDropzone">
+                <div class="setup-dropzone__icon">
+                  <i data-lucide="folder-search" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="setup-dropzone__text">
+                  <p class="setup-dropzone__title" id="setupDropzoneTitle">Choose project directory</p>
+                  <p class="setup-dropzone__sub">Click to select a local folder from your machine</p>
+                </div>
+                <input type="file" id="setupFolderInput" webkitdirectory directory multiple style="display: none;" />
+              </div>
+
+              <!-- Filesystem Path Bar with Live Scan Feedback -->
+              <div class="setup-path-bar">
+                <label class="setup-label" for="setupFolderPath">
+                  <span>Directory Path</span>
+                  <span class="setup-label-sub">Live scanned</span>
+                </label>
+                <div class="setup-path-input-wrap">
+                  <i data-lucide="folder"></i>
+                  <input type="text" class="setup-path-input" id="setupFolderPath"
+                    placeholder="Enter folder path (e.g. C:\Users\... or ./src/umldoc)" />
+                </div>
+                <span class="setup-scan-badge setup-scan-badge--info" id="setupScanBadge" style="display: none;"></span>
+              </div>
+            </div>
+
+            <!-- Git Clone Inputs (hidden initially) -->
+            <div class="setup-git-box" id="setupGitArea" style="display: none;">
+              <div class="setup-field">
+                <label class="setup-label" for="setupGitUrl">Repository Clone URL</label>
+                <input type="text" class="setup-input" id="setupGitUrl"
+                  placeholder="https://github.com/org/repository.git" />
+              </div>
+              <div class="setup-git-row">
+                <div class="setup-field">
+                  <label class="setup-label" for="setupGitBranch">Branch</label>
+                  <input type="text" class="setup-input" id="setupGitBranch" value="main" />
+                </div>
+                <div class="setup-field">
+                  <label class="setup-label" for="setupGitToken">Access Token <span
+                      class="setup-label-sub">(optional)</span></label>
+                  <input type="password" class="setup-input" id="setupGitToken" placeholder="ghp_..." />
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+        </div><!-- /.setup-col -->
+
+        <!-- Right Column: Initial Diagrams & Execution Options -->
+        <div class="setup-col">
+
+          <!-- 03 — Initial diagrams -->
+          <section class="setup-section">
+            <div class="setup-section__header">
+              <h2 class="setup-section__num">03 &mdash; Initial Diagrams</h2>
+            </div>
+
+            <div class="setup-card-group">
+              <div class="setup-group-header">
+                <span class="setup-group-title">Static Models</span>
+                <span class="setup-group-tag">Source AST</span>
+              </div>
+              <label class="setup-checkbox-item">
+                <span><i data-lucide="box" style="width: 14px; height: 14px; color: var(--primary-bg);"></i> Class
+                  Diagram</span>
+                <input type="checkbox" id="chkSetupClass" checked />
+              </label>
+              <label class="setup-checkbox-item">
+                <span><i data-lucide="network" style="width: 14px; height: 14px; color: var(--primary-bg);"></i>
+                  Component Diagram</span>
+                <input type="checkbox" id="chkSetupComponent" checked />
+              </label>
+              <label class="setup-checkbox-item">
+                <span><i data-lucide="package-2" style="width: 14px; height: 14px; color: var(--primary-bg);"></i>
+                  Package Dependencies</span>
+                <input type="checkbox" id="chkSetupPackage" checked />
+              </label>
+            </div>
+
+            <div class="setup-card-group">
+              <div class="setup-group-header">
+                <span class="setup-group-title">Dynamic Traces</span>
+                <span class="setup-group-tag" style="background: var(--bg-surface-active);">Runtime</span>
+              </div>
+              <label class="setup-checkbox-item" title="Trace recorded execution sequences">
+                <span><i data-lucide="git-commit" style="width: 14px; height: 14px; color: var(--primary-bg);"></i>
+                  Sequence Diagram</span>
+                <input type="checkbox" id="chkSetupSequence" checked />
+              </label>
+            </div>
+
+            <!-- Advanced Filters -->
+            <details class="setup-advanced">
+              <summary>
+                <span>Advanced Pipeline Filters</span>
+                <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+              </summary>
+              <div class="setup-advanced__content">
+                <label class="setup-checkbox-item">
+                  <span>Filter test files & build assets</span>
+                  <input type="checkbox" id="chkSetupFilterTests" checked />
+                </label>
+                <label class="setup-checkbox-item">
+                  <span>Include external dependencies</span>
+                  <input type="checkbox" id="chkSetupIncludeDeps" />
+                </label>
+              </div>
+            </details>
+
+          </section>
+
+        </div><!-- /.setup-col -->
+
+      </div><!-- /.setup-modal__body -->
+
+      <!-- Card Footer -->
+      <div class="setup-modal__footer">
+        <div class="setup-modal__footer-status">
+          <div class="setup-status-dot" id="setupStatusDot"></div>
+          <span id="setupStatusText">Ready</span>
+        </div>
+
+        <div class="setup-modal__footer-actions">
+          <button type="button" class="setup-btn-submit" id="btnEnterWorkspace">
+            <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+            <span id="setupSubmitText">Create Workspace</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================
+       PAGE 2: ACTIVE WORKSPACE (CANVAS + LOGS + STATUS DOCK)
+       Accessible only after user enters details in the form
+       ======================================================================== -->
+  <div class="workspace-wrapper is-hidden" id="workspaceWrapper">
+
+    <div class="canvas-container" id="canvasContainer">
+
+      <!-- View Options Popover (Pixel-perfect match to user screenshot) -->
+      <div class="view-options-popover" id="viewOptionsPopover">
+        <div class="popover-header">
+          <h3 class="popover-title">VIEW OPTIONS</h3>
+          <span class="popover-class-badge" id="popoverClassCountBadge">0 classes</span>
+        </div>
+
+        <!-- Layout Section -->
+        <div class="popover-section">
+          <span class="popover-section-label">Layout</span>
+          <div class="popover-segmented">
+            <button type="button" class="popover-seg-btn is-active" data-layout-opt="standard">Standard</button>
+            <button type="button" class="popover-seg-btn" data-layout-opt="layered">Layered</button>
+            <button type="button" class="popover-seg-btn" data-layout-opt="compact">Compact</button>
+          </div>
+        </div>
+
+        <!-- Direction Section -->
+        <div class="popover-section">
+          <span class="popover-section-label">Direction</span>
+          <div class="popover-segmented">
+            <button type="button" class="popover-seg-btn is-active" data-direction-opt="vertical">Vertical</button>
+            <button type="button" class="popover-seg-btn" data-direction-opt="horizontal">Horizontal</button>
+          </div>
+        </div>
+
+        <!-- Member Visibility Section -->
+        <div class="popover-section">
+          <span class="popover-section-label">Member Visibility</span>
+          <div class="popover-checkbox-group">
+            <label class="popover-checkbox-item">
+              <span>Auto-expand all classes</span>
+              <input type="checkbox" id="cbOptAutoExpand" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Attributes</span>
+              <input type="checkbox" id="cbOptAttributes" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Methods</span>
+              <input type="checkbox" id="cbOptMethods" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Inherited members</span>
+              <input type="checkbox" id="cbOptInherited" />
+            </label>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button type="button" class="btn-subtle" id="btnExpandAllClasses"
+              style="flex: 1; font-size: 11px; padding: 4px 6px;">Expand All</button>
+            <button type="button" class="btn-subtle" id="btnCollapseAllClasses"
+              style="flex: 1; font-size: 11px; padding: 4px 6px;">Compact All</button>
+          </div>
+        </div>
+
+        <!-- Relationships Section -->
+        <div class="popover-section">
+          <span class="popover-section-label">Relationships</span>
+          <div class="popover-checkbox-group">
+            <label class="popover-checkbox-item">
+              <span>Inheritance</span>
+              <input type="checkbox" id="cbOptRelInheritance" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Association</span>
+              <input type="checkbox" id="cbOptRelAssociation" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Dependency</span>
+              <input type="checkbox" id="cbOptRelDependency" checked />
+            </label>
+          </div>
+        </div>
+      </div><!-- /.view-options-popover -->
+
+      <!-- Publication-Grade Diagram-Type Aware Export Modal -->
+      <div class="export-modal-backdrop is-hidden" id="exportModalBackdrop">
+        <div class="export-dialog" id="exportDialog" role="dialog" aria-modal="true"
+          aria-labelledby="exportDialogTitle">
+          <div class="export-dialog__header">
+            <div class="export-dialog__title-group">
+              <div class="export-dialog__eyebrow">
+                <i data-lucide="printer" style="width: 13px; height: 13px;"></i>
+                <span>Atlas Publication Engine</span>
+              </div>
+              <h2 class="export-dialog__title" id="exportDialogTitle">Export Diagram</h2>
+            </div>
+            <button class="btn-circle btn-circle--sm" id="btnCloseExportModal" title="Close Export Dialog">
+              <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+
+          <div class="export-dialog__body">
+            <!-- Format Section -->
+            <div class="export-dialog__group">
+              <label class="export-dialog__label">Format</label>
+              <div class="export-segmented-group" id="exportFormatGroup">
+                <button type="button" class="export-seg-btn is-active" data-format="svg">
+                  <i data-lucide="code-2" style="width: 14px; height: 14px;"></i>
+                  <span>SVG</span>
+                  <span class="export-seg-pill">Vector</span>
+                </button>
+                <button type="button" class="export-seg-btn" data-format="pdf">
+                  <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+                  <span>PDF</span>
+                  <span class="export-seg-pill">Print</span>
+                </button>
+                <button type="button" class="export-seg-btn" data-format="png">
+                  <i data-lucide="image" style="width: 14px; height: 14px;"></i>
+                  <span>PNG</span>
+                  <span class="export-seg-pill">Raster</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Preset Section -->
+            <div class="export-dialog__group">
+              <div class="export-dialog__label-row">
+                <label class="export-dialog__label">Preset</label>
+                <span class="export-dim-preview" id="exportDimPreview">1920 × 1080 px · Landscape</span>
+              </div>
+              <div class="export-grid-presets" id="exportPresetGroup">
+                <button type="button" class="export-preset-card is-active" data-preset="screen">
+                  <span class="preset-name">Screen</span>
+                  <span class="preset-desc">Standard crisp display</span>
+                </button>
+                <button type="button" class="export-preset-card" data-preset="high_res">
+                  <span class="preset-name">High Resolution</span>
+                  <span class="preset-desc">4K UHD / Retina</span>
+                </button>
+                <button type="button" class="export-preset-card" data-preset="a4_report">
+                  <span class="preset-name">A4 Report</span>
+                  <span class="preset-desc">300 DPI Print publication</span>
+                </button>
+                <button type="button" class="export-preset-card" data-preset="presentation">
+                  <span class="preset-name">Presentation</span>
+                  <span class="preset-desc">High contrast for slides</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Detail Level Section -->
+            <div class="export-dialog__group">
+              <label class="export-dialog__label">Detail Level</label>
+              <div class="export-segmented-group" id="exportDetailGroup">
+                <button type="button" class="export-seg-btn" data-detail="minimal">
+                  <span>Minimal</span>
+                </button>
+                <button type="button" class="export-seg-btn is-active" data-detail="compact">
+                  <span>Compact</span>
+                </button>
+                <button type="button" class="export-seg-btn" data-detail="full">
+                  <span>Full</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Include Checklist Section -->
+            <div class="export-dialog__group">
+              <label class="export-dialog__label">Include</label>
+              <div class="export-checkbox-grid">
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportTitle" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Title Header</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportVerification" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Verification Status</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportVersion" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Source Version &amp; Commit</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportLegend" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Diagram Legend</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportFooter" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Footer</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportTiming" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Timing Information</span>
+                </label>
+                <label class="export-check-item">
+                  <input type="checkbox" id="chkExportEvidence" />
+                  <span class="check-custom"></span>
+                  <span class="check-label">Source Evidence</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dialog Footer / Actions -->
+          <div class="export-dialog__footer">
+            <button type="button" class="btn-subtle" id="btnCancelExportModal">Cancel</button>
+            <button type="button" class="btn-primary-pill" id="btnConfirmExport">
+              <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+              <span id="exportConfirmText">Export SVG Diagram</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Infinite Pan & Zoom Viewport -->
+      <div class="canvas-viewport" id="canvasViewport">
+        <div class="diag-plane" id="diagPlane">
+          <!-- SVG Connections Layer with Standard UML Markers -->
+          <svg class="diag-svg-layer" id="diagSvgLayer">
+            <defs>
+              <!-- Inheritance triangle marker (closed empty triangle) -->
+              <marker id="marker-inherit" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="11" markerHeight="11"
+                orient="auto-start-reverse">
+                <polygon points="1 1, 11 6, 1 11" fill="var(--bg-surface, #ffffff)"
+                  stroke="var(--text-primary, #0f172a)" stroke-width="1.5" />
+              </marker>
+              <!-- Composition marker (solid diamond) -->
+              <marker id="marker-composition" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="12" markerHeight="12"
+                orient="auto-start-reverse">
+                <polygon points="1 7, 7 2, 13 7, 7 12" fill="var(--text-primary, #0f172a)"
+                  stroke="var(--text-primary, #0f172a)" stroke-width="1.2" />
+              </marker>
+              <!-- Aggregation marker (hollow diamond) -->
+              <marker id="marker-aggregation" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="12" markerHeight="12"
+                orient="auto-start-reverse">
+                <polygon points="1 7, 7 2, 13 7, 7 12" fill="var(--bg-surface, #ffffff)"
+                  stroke="var(--text-primary, #0f172a)" stroke-width="1.5" />
+              </marker>
+              <!-- Dependency / Association marker (open chevron) -->
+              <marker id="marker-dep" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8"
+                orient="auto-start-reverse">
+                <polyline points="1 1, 9 5, 1 9" fill="none" stroke="var(--text-primary, #0f172a)" stroke-width="1.5"
+                  stroke-linecap="round" />
+              </marker>
+              <!-- Sequence Diagram Call marker (solid sharp arrowhead) -->
+              <marker id="marker-seq-call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8"
+                orient="auto-start-reverse">
+                <polygon points="1 2, 9 5, 1 8" fill="var(--text-primary, #0f172a)" />
+              </marker>
+              <!-- Sequence Diagram Return marker (open stroke chevron) -->
+              <marker id="marker-seq-return" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8"
+                orient="auto-start-reverse">
+                <polyline points="1 2, 8 5, 1 8" fill="none" stroke="var(--text-secondary, #475467)" stroke-width="1.5"
+                  stroke-linecap="round" />
+              </marker>
+              <!-- Sequence Diagram Exception marker (red cross marker) -->
+              <marker id="marker-seq-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8"
+                orient="auto-start-reverse">
+                <path d="M 2 2 L 8 8 M 8 2 L 2 8" fill="none" stroke="#ef4444" stroke-width="2"
+                  stroke-linecap="round" />
+              </marker>
+            </defs>
           </svg>
 
-          <button class="uml-node root" type="button" data-node-name="TinyDB" aria-label="Select TinyDB root package">
-            <span class="node-head"><span class="node-symbol">DB</span><span class="node-name">TinyDB</span></span>
-            <span class="node-meta"><span>root package</span> · tinydb</span><span class="node-badge"><i></i> VERIFIED GROUND TRUTH</span>
-          </button>
-          <button class="uml-node ast" type="button" data-node-name="ASTStaticExtractor" aria-label="Select ASTStaticExtractor">
-            <span class="node-head"><span class="node-symbol">AST</span><span class="node-name">ASTStaticExtractor</span></span>
-            <span class="node-meta"><span>class inventory</span> · 48 symbols</span><span class="node-badge"><i></i> verified</span>
-          </button>
-          <button class="uml-node trace" type="button" data-node-name="DynamicTrace" aria-label="Select DynamicTrace">
-            <span class="node-head"><span class="node-symbol">↗</span><span class="node-name">DynamicTrace</span></span>
-            <span class="node-meta"><span>runtime sessions</span> · 12 events</span><span class="node-badge"><i></i> verified</span>
-          </button>
-          <button class="uml-node verify" type="button" data-node-name="DiagramVerifier" aria-label="Select DiagramVerifier">
-            <span class="node-head"><span class="node-symbol">✓</span><span class="node-name">DiagramVerifier</span></span>
-            <span class="node-meta"><span>confidence</span> · 92%</span><span class="node-badge"><i></i> verified</span>
-          </button>
-          <button class="uml-node drift" type="button" data-node-name="DriftAnalyzer">
-            <span class="node-head"><span class="node-symbol">Δ</span><span class="node-name">DriftAnalyzer</span></span>
-            <span class="node-meta"><span>release diff</span> · v3 → v4</span><span class="node-badge"><i></i> verified</span>
-          </button>
-          <button class="uml-node bundle" type="button" data-node-name="BundlePackager">
-            <span class="node-head"><span class="node-symbol">ZIP</span><span class="node-name">BundlePackager</span></span>
-            <span class="node-meta"><span>portable output</span> · 6 artifacts</span><span class="node-badge"><i></i> verified</span>
-          </button>
-          <button class="uml-node click" type="button" data-node-name="Click">
-            <span class="node-head"><span class="node-symbol">C</span><span class="node-name">Click</span></span>
-            <span class="node-meta"><span>comparison repo</span> · 81 classes</span>
-          </button>
+          <!-- Dynamic UML Cards Layer (Reusing original cards & layouts) -->
+          <div class="diag-nodes-layer" id="diagNodesLayer"></div>
         </div>
       </div>
 
-      <div class="graph-foot"><span class="status-dot status-cyan" aria-hidden="true"></span><span>6 relations</span><span>·</span><span id="selection-status">0 selected</span></div>
-    </main>
-
-    <aside class="run-panel" aria-label="Live run panel">
-      <div class="panel-head">
-        <div class="panel-title"><h2>Live run</h2><p>Pipeline presentation</p></div>
-        <div class="live-pill"><i></i> LIVE</div>
-        <button class="dock-icon" type="button" id="panel-toggle" aria-label="Collapse live run panel"><i class="icon" data-lucide="panel-right-close" aria-hidden="true"></i></button>
-      </div>
-      <div class="switcher" role="tablist" aria-label="Presentation view">
-        <button type="button" role="tab" aria-selected="false" data-panel-tab="browse">Browse</button>
-        <button type="button" role="tab" aria-selected="true" class="active" data-panel-tab="live">Live run</button>
-      </div>
-
-      <section id="browse-view" class="panel-view" hidden>
-        <div class="section-head"><span>Generated dossiers</span><span class="section-note">offline ready</span></div>
-        <div class="project-list">
-          <a class="project-card" href="/bundles/tinydb/index.html"><span class="project-icon">DB</span><span><strong>TinyDB (v4.0.0)</strong><small>14 classes · 6 relations</small></span><i class="icon" data-lucide="arrow-up-right" aria-hidden="true"></i></a>
-          <a class="project-card" href="/bundles/click/index.html"><span class="project-icon project-icon-cyan">C</span><span><strong>Click (v8.1.8)</strong><small>81 classes · verified bundle</small></span><i class="icon" data-lucide="arrow-up-right" aria-hidden="true"></i></a>
-        </div>
-        <div class="browse-note"><i class="icon" data-lucide="archive" aria-hidden="true"></i><span>Open a dossier to inspect its offline architecture report.</span></div>
-      </section>
-
-      <section id="live-view" class="panel-view">
-        <button class="run-button" id="run-button" type="button" data-action="triggerLiveRun">
-          <span class="button-copy"><i class="icon" data-lucide="play" aria-hidden="true"></i><span id="run-button-label">Run TinyDB</span></span><span class="shortcut">⌘ ↵</span>
+      <!-- Floating Dock Controls (Bottom Center) -->
+      <div class="canvas-floating-dock">
+        <button class="dock-btn" id="btnDockZoomOut" title="Zoom Out (Scroll Down)">
+          <i data-lucide="minus"></i>
         </button>
-        <p class="run-error" id="run-error" role="alert" hidden></p>
-        <section class="panel-section">
-          <div class="section-head"><span>Pipeline stages</span><a href="/bundles/tinydb/index.html">View output</a></div>
-          <div class="timeline" id="pipeline-timeline">
-            <div class="stage complete" data-stage="extract"><span class="stage-dot"><i class="icon" data-lucide="check" aria-hidden="true"></i></span><span class="stage-label">Extracting classes</span><span class="stage-meta">1.2s</span></div>
-            <div class="stage complete" data-stage="trace"><span class="stage-dot"><i class="icon" data-lucide="check" aria-hidden="true"></i></span><span class="stage-label">Tracing runtime</span><span class="stage-meta">0.8s</span></div>
-            <div class="stage current" data-stage="verify"><span class="stage-dot"><i class="icon" data-lucide="loader-circle" aria-hidden="true"></i></span><span class="stage-label">Verifying model</span><span class="stage-meta">92%</span></div>
-            <div class="stage" data-stage="package"><span class="stage-dot"></span><span class="stage-label">Packaging bundle</span><span class="stage-meta">queued</span></div>
-          </div>
-        </section>
-        <section class="panel-section">
-          <div class="section-head"><span>Event stream</span><button class="text-button" id="reset-events" type="button">Reset</button></div>
-          <div class="event-card"><table class="event-table"><thead><tr><th scope="col">TIME</th><th scope="col">STAGE</th><th scope="col">STATUS</th></tr></thead><tbody id="event-rows">
-            <tr><td>00:01</td><td>AST scan</td><td class="ok">PASS</td></tr><tr><td>00:02</td><td>Trace map</td><td class="ok">PASS</td></tr><tr><td>00:03</td><td>Class match</td><td class="warn">92%</td></tr><tr><td>00:04</td><td>Drift check</td><td class="ok">PASS</td></tr>
-          </tbody></table></div>
-        </section>
-        <section class="panel-section history">
-          <div class="section-head"><span>Run history</span><button class="text-button" id="show-history" type="button">Show all</button></div>
-          <div class="history-list" id="history-list"><div class="history-item"><div><strong>TinyDB · latest</strong><small>loading session history…</small></div><span class="history-status">ready</span></div></div>
-        </section>
-      </section>
-    </aside>
+        <span class="zoom-level-pill" id="zoomLevelIndicator" title="Click to Reset 100%">100%</span>
+        <button class="dock-btn" id="btnDockZoomIn" title="Zoom In (Scroll Up)">
+          <i data-lucide="plus"></i>
+        </button>
+        <span class="dock-separator"></span>
+        <button class="dock-btn" id="btnDockToggleExpand" title="Toggle Auto-Expand All Classes">
+          <i data-lucide="chevrons-up-down"></i>
+        </button>
+        <button class="dock-btn" id="btnDockFit" title="Fit Diagram to Viewport">
+          <i data-lucide="maximize-2"></i>
+        </button>
+        <button class="dock-btn" id="btnDockReset" title="Reset View (100%)">
+          <i data-lucide="rotate-ccw"></i>
+        </button>
+      </div>
 
-    <div class="zoom-chip" aria-live="polite"><span id="zoom-value">100%</span><button class="fit" type="button" data-zoom-action="fit">Fit diagram</button></div>
-    <div class="pan-hint"><i class="icon" data-lucide="move" aria-hidden="true"></i>drag to pan · scroll to zoom</div>
-    <div class="bottom-dock" aria-label="Canvas actions">
-      <button class="dock-button active" type="button" data-tool="select"><i class="icon" data-lucide="mouse-pointer-2" aria-hidden="true"></i><span>Select</span></button>
-      <button class="dock-button" type="button" data-tool="pan"><i class="icon" data-lucide="hand" aria-hidden="true"></i><span>Pan</span></button>
-      <button class="dock-button" type="button" data-zoom-action="in"><i class="icon" data-lucide="zoom-in" aria-hidden="true"></i><span>Zoom</span></button>
-      <button class="dock-button" type="button" data-zoom-action="fit"><i class="icon" data-lucide="maximize-2" aria-hidden="true"></i><span>Fit</span></button>
-      <span class="dock-sep" aria-hidden="true"></span>
-      <button class="dock-button run" type="button" data-action="triggerLiveRun"><i class="icon" data-lucide="play" aria-hidden="true"></i><span>Run</span></button>
-    </div>
-  </div>
+      <!-- Pan hint -->
+      <div class="canvas-pan-hint">
+        <i data-lucide="move"></i>
+        <span>drag to pan · scroll to zoom</span>
+      </div>
+
+      <!-- Floating Diagram Canvas Legend (Interactive & Auto-Adapting) -->
+      <div class="diag-canvas-legend" id="diagCanvasLegend"></div>
+
+      <!-- Side Inspector Panel (Sequence Messages, Lifelines & UML Cards) -->
+      <aside class="canvas-inspector is-hidden" id="canvasInspector" aria-label="Entity Inspector"></aside>
+
+    </div><!-- /.canvas-container -->
+
+    <!-- ========================================================================
+         PAGE 2B: REPORTS & EVIDENCE DOSSIER VIEW
+         ======================================================================== -->
+    <div class="reports-container is-hidden" id="reportsView"></div>
+
+    <!-- ========================================================================
+         COMPONENT: BOTTOM LOGS & ISSUES PANEL (COLLAPSIBLE REUSED DRAWER)
+         ======================================================================== -->
+    <section class="bottom-panel panel--hidden" id="bottomPanel">
+      <!-- Tab bar -->
+      <div class="bp-tabbar">
+        <div class="bp-tabs">
+          <button class="bp-tab bp-tab--active" data-bptab="logs">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            <span>Logs</span>
+          </button>
+          <button class="bp-tab" data-bptab="issues">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>Issues</span>
+            <span class="bp-badge bp-badge--alert" id="bpIssuesBadge" style="display: none;">0</span>
+          </button>
+          <button class="bp-tab" data-bptab="activity">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Activity</span>
+            <span class="bp-badge bp-badge--info" id="bpActivityBadge" style="display: none;">0</span>
+          </button>
+        </div>
+
+        <div class="bp-tabbar__actions">
+          <div class="bp-level-wrapper">
+            <button class="bp-level-select" id="bpLogLevelSelect">
+              All levels
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="bp-level-menu" id="bpLevelMenu">
+              <div class="bp-level-item is-selected" data-level="all">All levels</div>
+              <div class="bp-level-item" data-level="info">INFO</div>
+              <div class="bp-level-item" data-level="success">SUCCESS</div>
+              <div class="bp-level-item" data-level="running">RUNNING</div>
+              <div class="bp-level-item" data-level="warn">WARN</div>
+              <div class="bp-level-item" data-level="error">ERROR</div>
+            </div>
+          </div>
+
+          <div class="bp-search">
+            <svg class="bp-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="bp-search__input" id="bpSearchInput" placeholder="Search logs…" />
+          </div>
+
+          <button class="bp-clear-btn" id="btnClearLogs" title="Clear console logs">Clear</button>
+          <button class="bp-close-btn" id="closeBottomPanel" title="Hide logs panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Log rows -->
+      <div class="bp-log-list" id="bpTabLogs">
+        <div class="bp-log-row" id="bpEmptyState" style="justify-content:center;opacity:0.5;">
+          <span class="bp-log-msg">No runs yet — click <strong>Run Pipeline</strong> or switch workspaces to inspect
+            logs.</span>
+        </div>
+      </div>
+
+      <!-- Tab 2: Issues List -->
+      <div class="bp-issue-list" id="bpTabIssues" style="display: none;">
+        <div class="bp-empty-list" id="bpIssuesEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>No structural drift or signature mismatches detected. Models and source code are in sync.</span>
+        </div>
+      </div>
+
+      <!-- Tab 3: Activity List -->
+      <div class="bp-log-list" id="bpTabActivity" style="display: none;">
+        <div class="bp-empty-list" id="bpActivityEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>No workspace activity recorded yet. Run a pipeline build to view event logs.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Status Bar Dock -->
+    <footer class="bottom-status-bar" id="bottomStatusBar">
+      <div class="bottom-status-bar__left">
+        <div class="status-indicator-dot" id="sbStatusDot"></div>
+        <span id="sbStatusText" style="font-weight: 500;">Models synchronized · AST 3.11</span>
+      </div>
+
+      <div class="bottom-status-bar__right">
+        <button class="btn-toggle-logs" id="sbBtnLogs" title="Toggle System Logs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span>Logs</span>
+          <span class="bp-badge bp-badge--info" id="sbLogsBadge" style="margin-left: 2px;">0</span>
+        </button>
+
+        <button class="btn-toggle-logs" id="sbBtnIssues" title="View Issues and Drift">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>Issues</span>
+          <span class="bp-badge bp-badge--alert" id="sbIssuesBadge" style="display: none; margin-left: 2px;">0</span>
+        </button>
+
+        <button class="btn-toggle-logs" id="btnToggleBottomPanel" title="Expand / Collapse Drawer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+  </div><!-- /.workspace-wrapper -->
+
+  <!-- ========================================================================
+       MOUNT & CONTROLLER INITIALIZATION SCRIPT
+       ======================================================================== -->
+  <script type="module">
+    import { TopbarComponent } from '/static/components/topbar.js';
+    import { DiagramCanvasComponent } from '/static/components/canvas.js';
+    import { LogsComponent } from '/static/components/logs.js';
+    import { LegendComponent } from '/static/components/legend.js';
+    import { SetupModalComponent } from '/static/components/setup.js';
+    import { InspectorComponent } from '/static/components/inspector.js';
+    import { ReportsComponent } from '/static/components/reports.js';
+
+    // Workspaces state management with full history retention
+    const DEFAULT_WORKSPACES = [
+      { id: 'careercompass', name: 'Career Compass (Architecture)', path: 'careercompass', icon: 'compass', classesCount: 8, verification: 'VERIFIED' },
+      { id: 'umldoc', name: 'UMLdoc Engine (Native)', path: 'src/umldoc', icon: 'cpu', classesCount: 50, verification: 'VERIFIED' },
+      { id: 'tinydb', name: 'TinyDB (Document Database)', path: 'tinydb', icon: 'database', classesCount: 16, verification: 'VERIFIED' },
+      { id: 'e-commerce-service', name: 'E-Commerce Service', path: 'ecommerce', icon: 'shopping-cart', classesCount: 11, verification: 'VERIFIED' }
+    ];
+
+    function getAllWorkspaces() {
+      try {
+        const saved = localStorage.getItem('umldoc_workspaces') || localStorage.getItem('umldoc_recent_workspaces');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) { }
+      return [...DEFAULT_WORKSPACES];
+    }
+
+    function saveWorkspaceHistory(id, path = '', extra = {}) {
+      if (!id) return;
+      const list = getAllWorkspaces();
+      const existingIdx = list.findIndex(w => w.id === id);
+      const existing = existingIdx >= 0 ? list[existingIdx] : null;
+
+      // Determine display name
+      let displayName = extra.name || (existing && existing.name);
+      if (!displayName) {
+        const idLower = id.toLowerCase();
+        if (idLower === 'umldoc') displayName = 'UMLdoc Engine (Native)';
+        else if (idLower === 'careercompass') displayName = 'Career Compass (Architecture)';
+        else if (idLower === 'e-commerce-service' || idLower === 'ecommerce') displayName = 'E-Commerce Service';
+        else if (idLower === 'tinydb') displayName = 'TinyDB (Document Database)';
+        else if (idLower === 'click') displayName = 'Click (CLI Toolkit)';
+        else displayName = id.charAt(0).toUpperCase() + id.slice(1).replace(/[-_]/g, ' ');
+      }
+
+      // Determine icon
+      let icon = extra.icon || (existing && existing.icon) || 'folder';
+      if (!extra.icon && !existing) {
+        const idLower = id.toLowerCase();
+        if (idLower.includes('compass')) icon = 'compass';
+        else if (idLower.includes('uml') || idLower.includes('engine')) icon = 'cpu';
+        else if (idLower.includes('commerce') || idLower.includes('store')) icon = 'shopping-cart';
+        else if (idLower.includes('db') || idLower.includes('database')) icon = 'database';
+        else if (idLower.includes('cli') || idLower.includes('cmd')) icon = 'terminal';
+      }
+
+      const updatedItem = {
+        id,
+        name: displayName,
+        path: path || (existing && existing.path) || '',
+        icon,
+        classesCount: extra.classesCount !== undefined ? extra.classesCount : (existing && existing.classesCount),
+        relationsCount: extra.relationsCount !== undefined ? extra.relationsCount : (existing && existing.relationsCount),
+        verification: extra.verification || (existing && existing.verification) || 'VERIFIED',
+        lastAccessed: new Date().toISOString()
+      };
+
+      // Keep ALL history, prepend the most recently accessed
+      const filtered = list.filter(w => w.id !== id);
+      const newList = [updatedItem, ...filtered];
+
+      try {
+        localStorage.setItem('umldoc_workspaces', JSON.stringify(newList));
+        localStorage.setItem('umldoc_recent_workspaces', JSON.stringify(newList));
+      } catch (e) { }
+
+      topbar.setWorkspaces(newList);
+
+      // Asynchronously synchronize with backend
+      fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedItem)
+      }).catch(() => { });
+    }
+
+    function deleteWorkspaceFromHistory(id) {
+      let list = getAllWorkspaces().filter(w => w.id !== id);
+      if (list.length === 0) {
+        list = [...DEFAULT_WORKSPACES];
+      }
+      try {
+        localStorage.setItem('umldoc_workspaces', JSON.stringify(list));
+        localStorage.setItem('umldoc_recent_workspaces', JSON.stringify(list));
+      } catch (e) { }
+      topbar.setWorkspaces(list);
+      fetch(`/api/workspaces?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => { });
+      recordLog('info', 'Workspaces', `Removed '${id}' from workspace history.`);
+    }
+
+    function clearWorkspaceHistory() {
+      const list = [...DEFAULT_WORKSPACES];
+      try {
+        localStorage.setItem('umldoc_workspaces', JSON.stringify(list));
+        localStorage.setItem('umldoc_recent_workspaces', JSON.stringify(list));
+      } catch (e) { }
+      topbar.setWorkspaces(list);
+      fetch('/api/workspaces?id=all', { method: 'DELETE' }).catch(() => { });
+      recordLog('info', 'Workspaces', 'Workspace history cleared and reset to defaults.');
+    }
+
+    // Backward compatibility alias
+    function saveRecentWorkspace(id, path, extra) {
+      saveWorkspaceHistory(id, path, extra);
+    }
+
+    // Initialize Floating Diagram Canvas Legend
+    const legend = new LegendComponent({
+      containerId: 'diagCanvasLegend',
+      defaultType: 'class',
+      isCollapsed: false,
+      onToggle: (isCollapsed) => {
+        recordLog('info', 'Legend', `Canvas legend ${isCollapsed ? 'collapsed' : 'expanded'}.`);
+      }
+    });
+
+    // Initialize Side Inspector Drawer
+    const inspector = new InspectorComponent({
+      container: document.getElementById('canvasInspector'),
+      onNavigateMessage: (order) => {
+        canvas.selectMessageByOrder(order);
+      },
+      onSelectParticipant: (participantId) => {
+        canvas.selectParticipantById(participantId);
+      },
+      onFocusLifelines: (caller, callee) => {
+        canvas.focusLifelines(caller, callee);
+      },
+      onClose: () => {
+        if (canvas.diagramType === 'sequence') {
+          canvas.clearSequenceSelection(true);
+        } else {
+          canvas.selectNode(null, true);
+        }
+      }
+    });
+
+    // Initialize Bottom Logs & Issues Drawer
+    const logs = new LogsComponent({
+      panelId: 'bottomPanel',
+      statusBarId: 'bottomStatusBar'
+    });
+
+    function recordLog(level, node, msg, status) {
+      logs.addLog(level, node, msg, status);
+    }
+
+    // Initial Welcome Log
+    recordLog('info', 'System', 'ATLAS Modern Studio initialized with clean white theme & #090C9B primary.');
+    recordLog('success', 'Verification', 'Engine loaded: AST 3.11 with live dynamic verification.');
+
+    const canvas = new DiagramCanvasComponent({
+      onViewOptionsChange: (opts) => {
+        recordLog('info', 'View Options', `Layout=${opts.layout}, Dir=${opts.direction}, Attrs=${opts.visibility.attributes}, Methods=${opts.visibility.methods}`);
+        canvas.renderDiagram(canvas.classes, canvas.relations, canvas.drift);
+      },
+      onNodeSelect: (item) => {
+        if (!item) {
+          inspector.close(true);
+          return;
+        }
+
+        // Display structured details inside Inspector panel
+        inspector.inspect(item);
+
+        if (typeof item === 'object' && item.kind === 'sequence_message') {
+          const timeText = item.durationMs ? ` (+${item.durationMs.toFixed(1)}ms)` : '';
+          const loopText = item.loop_count > 1 ? ` [loop ×${item.loop_count}]` : '';
+          recordLog('info', 'Sequence Inspector', `#${item.order} ${item.type.toUpperCase()}: ${item.caller} → ${item.callee} :: ${item.signature || item.method}${timeText}${loopText}`);
+          if (item.source && item.source.file) {
+            recordLog('info', 'Trace Evidence', `Source: ${item.source.file}${item.source.line ? ':' + item.source.line : ''}`);
+          }
+        } else if (typeof item === 'object' && item.kind === 'sequence_participant') {
+          recordLog('info', 'Lifeline Inspector', `Lifeline: ${item.name} (${item.kind || item.type || 'service'}) [${item.id}]`);
+        } else {
+          recordLog('info', 'Inspector', `Selected UML Entity: ${typeof item === 'object' ? item.name : item}`);
+        }
+      }
+    });
+    window.canvas = canvas;
+
+    const reportsView = document.getElementById('reportsView');
+    const canvasContainer = document.getElementById('canvasContainer');
+    let topbar;
+
+    const reports = new ReportsComponent({
+      container: reportsView,
+      onBackToDiagrams: () => {
+        if (topbar) topbar.setView('diagrams');
+      },
+      onNavigateToDiagram: (diagType, entityName) => {
+        if (topbar) {
+          topbar.setView('diagrams');
+          if (diagType) {
+            topbar.setDiagramType(diagType);
+          }
+        }
+        if (entityName) {
+          setTimeout(() => {
+            canvas.selectNode(entityName, true);
+          }, 100);
+        }
+        recordLog('info', 'Report Navigation', `Jumped from report to ${diagType.toUpperCase()} diagram (${entityName})`);
+      },
+      onExportBundle: () => {
+        openExportModal();
+      }
+    });
+    window.reports = reports;
+
+    topbar = new TopbarComponent({
+      currentProject: '',
+      onDeleteWorkspace: (id) => {
+        deleteWorkspaceFromHistory(id);
+      },
+      onClearWorkspaces: () => {
+        clearWorkspaceHistory();
+      },
+      onOpenSetup: () => {
+        leaveWorkspace();
+      },
+
+      onDiagramTypeChange: (type) => {
+        inspector.close();
+        recordLog('info', 'Navigation', `Diagram switched to: ${type.toUpperCase()}`);
+        legend.setDiagramType(type);
+        canvas.setDiagramType(type);
+
+        let count = canvas.classes.length;
+        let suffix = 'CLASSES';
+        if (type === 'packages' || type === 'package') {
+          count = (canvas.packageNodes && canvas.packageNodes.length) || canvas.classes.length;
+          suffix = 'PACKAGES';
+        } else if (type === 'architecture' || type === 'component') {
+          count = (canvas.componentNodes && canvas.componentNodes.length) || canvas.classes.length;
+          suffix = 'COMPONENTS';
+        } else if (type === 'sequence') {
+          const sc = canvas.getActiveSequenceScenario ? canvas.getActiveSequenceScenario() : null;
+          count = (sc && sc.messages) ? sc.messages.length : (canvas.sequenceMessages ? canvas.sequenceMessages.length : 0);
+          suffix = 'MESSAGES';
+        }
+        const b = document.getElementById('badgeClassesCount');
+        if (b) b.textContent = `${count} ${suffix}`;
+
+        const searchInput = document.getElementById('filterSearchInput');
+        if (searchInput) {
+          if (type === 'packages' || type === 'package') searchInput.placeholder = 'Filter packages...';
+          else if (type === 'architecture' || type === 'component') searchInput.placeholder = 'Filter components...';
+          else if (type === 'sequence') searchInput.placeholder = 'Filter messages...';
+          else searchInput.placeholder = 'Filter symbols...';
+        }
+      },
+
+      onSearch: (query) => {
+        canvas.filterSymbols(query);
+        if (query) {
+          recordLog('info', 'Symbol Filter', `Filtering symbols by "${query}"`);
+        } else {
+          recordLog('info', 'Symbol Filter', 'Symbol filter cleared');
+        }
+      },
+
+      onLayoutToggle: (layout) => {
+        recordLog('info', 'Layout Engine', `Canvas layout set to: ${layout}`);
+        canvas.options.direction = (layout === 'LR') ? 'horizontal' : 'vertical';
+        canvas.renderCurrentDiagram();
+      },
+
+      onScopeChange: (scope) => {
+        recordLog('info', 'Scope', `Package scope changed to: ${scope}`);
+      },
+
+      onProjectChange: async (projectId, projectPath = '') => {
+        if (appHeader) appHeader.classList.remove('onboarding-mode');
+        if (setupOnboardingView) setupOnboardingView.classList.add('is-hidden');
+        if (workspaceWrapper) workspaceWrapper.classList.remove('is-hidden');
+
+        logs.setStatus(`Loading ${projectId}...`, 'running');
+        recordLog('running', 'Scan Codebase', `Fetching AST models for '${projectId}'...`);
+        topbar.currentPath = projectPath;
+        try {
+          let url = `/api/classes?project=${encodeURIComponent(projectId)}`;
+          if (projectPath) url += `&path=${encodeURIComponent(projectPath)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            const classCount = data.classes ? data.classes.length : 0;
+            const relCount = data.relations ? data.relations.length : 0;
+            const verif = data.verification_status || 'Verified';
+
+            topbar.setProject(projectId, {
+              classesCount: classCount,
+              verification: verif.toUpperCase()
+            });
+
+            // Render live UML cards and connections
+            canvas.setDiagramData(data);
+            setTimeout(() => canvas.fitToContent(), 50);
+            setTimeout(() => canvas.fitToContent(), 250);
+
+            logs.setStatus(`${projectId.toUpperCase()} · Verified (AST 3.11)`, 'success');
+            recordLog('success', 'Scan Codebase', `Loaded ${classCount} classes and ${relCount} relations for ${projectId}.`);
+            saveWorkspaceHistory(projectId, projectPath, {
+              classesCount: classCount,
+              relationsCount: relCount,
+              verification: verif.toUpperCase()
+            });
+
+            if (reportsView && !reportsView.classList.contains('is-hidden')) {
+              reports.loadReport(projectId, projectPath);
+            }
+
+            // Update issues tab if drift present
+            if (data.drift && data.drift.length > 0) {
+              logs.setIssues(data.drift.map(d => ({
+                type: 'DRIFT',
+                title: d.entity_name || d.name || 'Schema Drift',
+                desc: d.description || d.reason || 'Code differs from recorded model baseline',
+                file: d.file || '',
+                severity: 'warn'
+              })));
+              recordLog('warn', 'Track Changes', `${data.drift.length} structural drift item(s) detected.`);
+            } else {
+              logs.setIssues([]);
+            }
+          } else {
+            logs.setStatus(`Error loading ${projectId}`, 'error');
+            recordLog('error', 'API Client', `Error loading ${projectId}: HTTP ${res.status}`);
+          }
+        } catch (err) {
+          logs.setStatus(`Failed: ${err.message}`, 'error');
+          recordLog('error', 'API Client', `Request failed: ${err.message}`);
+        }
+      },
+
+      onRunPipeline: async () => {
+        const cur = topbar.currentProject || 'umldoc';
+        const curPath = topbar.currentPath || 'src/umldoc';
+        logs.setStatus(`Running pipeline for ${cur}...`, 'running');
+        recordLog('running', 'Pipeline Runner', `Triggering Live Pipeline execution for ${cur}...`);
+
+        // Auto-open logs when pipeline runs so user sees progress
+        logs.open('logs');
+
+        try {
+          const res = await fetch('/api/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project: cur, path: curPath })
+          });
+          const result = await res.json();
+          if (res.ok) {
+            logs.setStatus(`${cur.toUpperCase()} · Completed (${Math.round(result.duration_ms)}ms)`, 'success');
+            recordLog('success', 'Generate Diagrams', `Extracted ${result.classes_extracted} classes in ${Math.round(result.duration_ms)}ms.`);
+            recordLog('success', 'Verify Accuracy', `${result.verified_count || result.classes_extracted} elements verified.`);
+
+            // Record in Activity tab
+            logs.setActivity([
+              {
+                time: logs._now(),
+                project: cur.toUpperCase(),
+                action: 'Pipeline Build',
+                desc: `Extracted ${result.classes_extracted} classes in ${Math.round(result.duration_ms)}ms`,
+                status: 'SUCCESS',
+                duration: result.duration_ms
+              },
+              ...logs.activities
+            ]);
+
+            // Re-fetch classes to refresh canvas with latest pipeline build
+            topbar.onProjectChange(cur, curPath);
+          } else {
+            logs.setStatus(`Pipeline Failed`, 'error');
+            recordLog('error', 'Pipeline Runner', `Execution error: ${result.error || 'Unknown error'}`);
+          }
+        } catch (err) {
+          logs.setStatus(`Pipeline Error`, 'error');
+          recordLog('error', 'Pipeline Runner', `Pipeline run failed: ${err.message}`);
+        }
+      },
+
+      onExport: () => {
+        openExportModal();
+      },
+
+      onViewChange: (view) => {
+        recordLog('info', 'View Switcher', `View mode switched to: ${view}.`);
+        if (view === 'reports' || view === 'verification') {
+          if (canvasContainer) canvasContainer.classList.add('is-hidden');
+          if (reportsView) {
+            reportsView.classList.remove('is-hidden');
+            reports.loadReport(topbar.currentProject || 'tinydb', topbar.currentPath || '');
+          }
+        } else if (view === 'diagrams') {
+          if (reportsView) reportsView.classList.add('is-hidden');
+          if (canvasContainer) {
+            canvasContainer.classList.remove('is-hidden');
+            setTimeout(() => canvas.fitToContent(), 50);
+          }
+        }
+      }
+    });
+
+    const appHeader = document.getElementById('appHeader');
+    const setupOnboardingView = document.getElementById('setupOnboardingView');
+    const workspaceWrapper = document.getElementById('workspaceWrapper');
+
+    function enterWorkspace(projectName, projectPath = '', classesData = null) {
+      if (appHeader) appHeader.classList.remove('onboarding-mode');
+      if (setupOnboardingView) setupOnboardingView.classList.add('is-hidden');
+      if (workspaceWrapper) workspaceWrapper.classList.remove('is-hidden');
+
+      if (reportsView && !reportsView.classList.contains('is-hidden')) {
+        reports.loadReport(projectName, projectPath);
+      }
+
+      if (classesData && classesData.classes) {
+        topbar.currentPath = projectPath || '';
+        const classCount = classesData.classes.length;
+        const verif = (classesData.verification_status || 'VERIFIED').toUpperCase();
+
+        topbar.setProject(projectName, {
+          classesCount: classCount,
+          verification: verif
+        });
+
+        canvas.setDiagramData(classesData);
+        setTimeout(() => canvas.fitToContent(), 50);
+        setTimeout(() => canvas.fitToContent(), 250);
+
+        logs.setStatus(`${projectName.toUpperCase()} · Verified (AST 3.11)`, 'success');
+        saveWorkspaceHistory(projectName, projectPath, {
+          classesCount: classCount,
+          verification: verif
+        });
+      } else {
+        topbar.onProjectChange(projectName, projectPath);
+      }
+    }
+
+    function leaveWorkspace() {
+      if (appHeader) appHeader.classList.add('onboarding-mode');
+      if (setupOnboardingView) setupOnboardingView.classList.remove('is-hidden');
+      if (workspaceWrapper) workspaceWrapper.classList.add('is-hidden');
+      try {
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch (e) { }
+    }
+
+    // Initialize Setup Form Component
+    const setupForm = new SetupModalComponent({
+      container: document.getElementById('setupCard'),
+      modal: document.getElementById('setupCard'),
+      backdrop: null,
+      onWorkspaceCreated: (res) => {
+        enterWorkspace(res.project, res.path, res.classesData);
+      },
+      onLog: (level, node, msg) => {
+        recordLog(level, node, msg);
+      }
+    });
+
+    // Wire Publication-Grade Diagram-Type Aware Export Modal
+    const exportModalBackdrop = document.getElementById('exportModalBackdrop');
+    const btnCloseExportModal = document.getElementById('btnCloseExportModal');
+    const btnCancelExportModal = document.getElementById('btnCancelExportModal');
+    const btnConfirmExport = document.getElementById('btnConfirmExport');
+    const exportConfirmText = document.getElementById('exportConfirmText');
+    const exportDimPreview = document.getElementById('exportDimPreview');
+
+    let exportState = {
+      format: 'svg',
+      preset: 'screen',
+      detailLevel: 'compact',
+      includeTitle: false,
+      includeVerification: false,
+      includeVersion: false,
+      includeLegend: false,
+      includeFooter: false,
+      includeTiming: false,
+      includeEvidence: false
+    };
+
+    function updateExportDimensionPreview() {
+      if (!exportDimPreview || !canvas) return;
+      const dims = canvas.getExportDimensions(canvas.diagramType || 'class', exportState.preset);
+      exportDimPreview.textContent = dims.label || `${dims.width} × ${dims.height} px`;
+    }
+
+    function openExportModal() {
+      if (!exportModalBackdrop) return;
+      exportModalBackdrop.classList.remove('is-hidden');
+      updateExportDimensionPreview();
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+      recordLog('info', 'Export Engine', `Publication export modal opened for ${(canvas.diagramType || 'class').toUpperCase()} diagram.`);
+    }
+
+    function closeExportModal() {
+      if (!exportModalBackdrop) return;
+      exportModalBackdrop.classList.add('is-hidden');
+    }
+
+    if (btnCloseExportModal) btnCloseExportModal.addEventListener('click', closeExportModal);
+    if (btnCancelExportModal) btnCancelExportModal.addEventListener('click', closeExportModal);
+    if (exportModalBackdrop) {
+      exportModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === exportModalBackdrop) closeExportModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && exportModalBackdrop && !exportModalBackdrop.classList.contains('is-hidden')) {
+        closeExportModal();
+      }
+    });
+
+    // Format segmented buttons
+    const formatButtons = document.querySelectorAll('#exportFormatGroup .export-seg-btn');
+    formatButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        formatButtons.forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        exportState.format = btn.dataset.format || 'svg';
+        if (exportConfirmText) {
+          exportConfirmText.textContent = `Export ${exportState.format.toUpperCase()} Diagram`;
+        }
+      });
+    });
+
+    // Preset cards
+    const presetButtons = document.querySelectorAll('#exportPresetGroup .export-preset-card');
+    presetButtons.forEach(card => {
+      card.addEventListener('click', () => {
+        presetButtons.forEach(c => c.classList.remove('is-active'));
+        card.classList.add('is-active');
+        exportState.preset = card.dataset.preset || 'screen';
+        updateExportDimensionPreview();
+      });
+    });
+
+    // Detail level segmented buttons
+    const detailButtons = document.querySelectorAll('#exportDetailGroup .export-seg-btn');
+    detailButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        detailButtons.forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        exportState.detailLevel = btn.dataset.detail || 'compact';
+      });
+    });
+
+    // Checkboxes
+    const chkTitle = document.getElementById('chkExportTitle');
+    const chkVerif = document.getElementById('chkExportVerification');
+    const chkVer = document.getElementById('chkExportVersion');
+    const chkLegend = document.getElementById('chkExportLegend');
+    const chkFooter = document.getElementById('chkExportFooter');
+    const chkTiming = document.getElementById('chkExportTiming');
+    const chkEvidence = document.getElementById('chkExportEvidence');
+
+    // Confirm Export Button
+    if (btnConfirmExport) {
+      btnConfirmExport.addEventListener('click', () => {
+        exportState.includeTitle = chkTitle ? chkTitle.checked : false;
+        exportState.includeVerification = chkVerif ? chkVerif.checked : false;
+        exportState.includeVersion = chkVer ? chkVer.checked : false;
+        exportState.includeLegend = chkLegend ? chkLegend.checked : false;
+        exportState.includeFooter = chkFooter ? chkFooter.checked : false;
+        exportState.includeTiming = chkTiming ? chkTiming.checked : false;
+        exportState.includeEvidence = chkEvidence ? chkEvidence.checked : false;
+
+        const curProject = topbar.currentProject || 'atlas';
+        const diagType = canvas.diagramType || 'diagram';
+        const outFilename = `${curProject.toLowerCase()}_${diagType}_${exportState.preset}.${exportState.format}`;
+
+        canvas.export(exportState.format, {
+          filename: outFilename,
+          preset: exportState.preset,
+          detailLevel: exportState.detailLevel,
+          includeTitle: exportState.includeTitle,
+          includeVerification: exportState.includeVerification,
+          includeVersion: exportState.includeVersion,
+          includeLegend: exportState.includeLegend,
+          includeFooter: exportState.includeFooter,
+          includeTiming: exportState.includeTiming,
+          includeEvidence: exportState.includeEvidence
+        });
+
+        recordLog('success', 'Publication Export', `Exported ${exportState.format.toUpperCase()} (${exportState.preset}) diagram for ${curProject}.`);
+        closeExportModal();
+      });
+    }
+
+    // Direct SVG button in testing bar
+    const btnDirectSvg = document.getElementById('demoDirectSvgExport');
+    if (btnDirectSvg) {
+      btnDirectSvg.addEventListener('click', () => {
+        const cur = topbar.currentProject || 'umldoc';
+        canvas.exportSVG(`${cur}_diagram.svg`);
+        recordLog('success', 'Vector Export', `Exported lossless standalone vector SVG for ${cur}.`);
+      });
+    }
+
+    // Initialize dynamic workspace dropdown and sync with backend
+    topbar.setWorkspaces(getAllWorkspaces());
+    fetch('/api/workspaces')
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.workspaces) && data.workspaces.length > 0) {
+          const localList = getAllWorkspaces();
+          const serverMap = new Map(data.workspaces.map(w => [w.id, w]));
+          localList.forEach(w => {
+            if (serverMap.has(w.id)) {
+              Object.assign(serverMap.get(w.id), w);
+            } else {
+              data.workspaces.push(w);
+            }
+          });
+          try {
+            localStorage.setItem('umldoc_workspaces', JSON.stringify(data.workspaces));
+            localStorage.setItem('umldoc_recent_workspaces', JSON.stringify(data.workspaces));
+          } catch (e) { }
+          topbar.setWorkspaces(data.workspaces);
+        }
+      })
+      .catch(() => { });
+
+    // Expose helpers globally
+    window.openExportModal = openExportModal;
+    window.closeExportModal = closeExportModal;
+    window.enterWorkspace = enterWorkspace;
+    window.saveWorkspaceHistory = saveWorkspaceHistory;
+    window.getAllWorkspaces = getAllWorkspaces;
+    window.clearWorkspaceHistory = clearWorkspaceHistory;
+
+    // Check URL parameters for explicit project request; otherwise start strictly in clean Onboarding form!
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('project')) {
+      enterWorkspace(urlParams.get('project'), urlParams.get('path') || '');
+    } else {
+      leaveWorkspace();
+    }
+  </script>
+
 </body>
+
 </html>

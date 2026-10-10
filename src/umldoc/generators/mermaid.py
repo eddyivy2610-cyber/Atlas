@@ -34,8 +34,8 @@ class MermaidGenerator:
 
         # 2. Relationships
         for rel in static_model.relations:
-            src = rel.source_id.split(".")[-1]
-            tgt = rel.target_id.split(".")[-1]
+            src = rel.source_id.replace(".", "_")
+            tgt = rel.target_id.replace(".", "_")
             label_str = f" : {rel.label}" if rel.label else ""
 
             if rel.relation_type == RelationType.INHERITANCE:
@@ -56,10 +56,12 @@ class MermaidGenerator:
     @classmethod
     def _render_class(cls, class_ir: ClassIR) -> list[str]:
         lines = []
-        name = class_ir.name
-        lines.append(f"    class {name} {{")
+        safe_name = class_ir.name.replace(".", "_")
+        lines.append(f"    class {safe_name} {{")
 
-        if class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
+        if class_ir.kind == ElementKind.MODULE:
+            lines.append("        <<module>>")
+        elif class_ir.kind == ElementKind.INTERFACE or class_ir.is_abstract:
             lines.append("        <<interface>>")
         elif class_ir.kind == ElementKind.PROTOCOL or class_ir.is_protocol:
             lines.append("        <<protocol>>")
@@ -118,5 +120,83 @@ class MermaidGenerator:
             elif evt.event_type == InteractionEventType.EXCEPTION:
                 exc_type = evt.exception.type_name if evt.exception else "Exception"
                 lines.append(f"    {caller}--x-{callee}: raise {exc_type}")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def generate_package_diagram(cls, static_model: StaticModelIR, title: Optional[str] = None) -> str:
+        """Generate Mermaid package dependency diagram (.mmd)."""
+        pkg_model = static_model.packages
+        lines = ["flowchart TB"]
+        if title:
+            lines.append(f"    %% Title: {title}")
+        elif static_model.project_name:
+            lines.append(f"    %% Title: Package Dependencies: {static_model.project_name}")
+
+        if not pkg_model or not pkg_model.packages:
+            lines.append("    empty[No Packages Extracted]")
+            return "\n".join(lines)
+
+        for pkg in pkg_model.packages:
+            safe_id = f"pkg_{pkg.name.replace('.', '_')}"
+            n_mods = len(pkg.modules)
+            n_cls = len(pkg.classes)
+            label = f"{pkg.name}<br/>({n_mods} modules, {n_cls} classes)<br/>Ca:{pkg.afferent_coupling} Ce:{pkg.efferent_coupling} I:{pkg.instability}"
+            lines.append(f'    subgraph {safe_id} ["{label}"]')
+            for m in pkg.modules[:4]:
+                m_short = m.split(".")[-1]
+                lines.append(f'        {safe_id}_{m_short}["{m_short}"]')
+            lines.append("    end")
+
+        for dep in pkg_model.dependencies:
+            src = f"pkg_{dep.source_package.replace('.', '_')}"
+            tgt = f"pkg_{dep.target_package.replace('.', '_')}"
+            label_text = f"imports ({dep.import_count})"
+            if dep.is_cyclic:
+                label_text += " [CIRCULAR]"
+            lines.append(f"    {src} -.->|{label_text}| {tgt}")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def generate_component_diagram(cls, static_model: StaticModelIR, title: Optional[str] = None) -> str:
+        """Generate Mermaid component architecture diagram (.mmd)."""
+        comp_model = static_model.components
+        lines = ["flowchart TB"]
+        if title:
+            lines.append(f"    %% Title: {title}")
+        elif static_model.project_name:
+            lines.append(f"    %% Title: Component Architecture: {static_model.project_name}")
+
+        if not comp_model or not comp_model.components:
+            lines.append("    empty[No Architectural Components Extracted]")
+            return "\n".join(lines)
+
+        from collections import defaultdict
+        tier_map = defaultdict(list)
+        for comp in comp_model.components:
+            tier_map[comp.tier].append(comp)
+
+        for tier in comp_model.tiers:
+            comps = tier_map.get(tier, [])
+            if not comps:
+                continue
+            safe_tier = tier.replace(" / ", "_").replace(" & ", "_").replace(" ", "_")
+            lines.append(f'    subgraph tier_{safe_tier} ["{tier}"]')
+            for c in comps:
+                safe_id = c.id.replace(".", "_")
+                stereo = c.stereotype
+                f_cnt = getattr(c, "functions_count", 0)
+                d_cnt = getattr(c, "dependencies_count", 0)
+                role_txt = getattr(c, "role", "Service")
+                lines.append(f'        {safe_id}["<b>{c.name}</b><br/><small>{stereo} · {role_txt}</small><br/><small>{f_cnt} functions • {d_cnt} deps</small>"]')
+            lines.append("    end")
+
+        for conn in comp_model.connectors:
+            src = conn.source_id.replace(".", "_")
+            tgt = conn.target_id.replace(".", "_")
+            lbl = conn.label or "uses"
+            arrow = "-->" if getattr(conn, "relationship_style", "solid") == "solid" else "-.->"
+            lines.append(f"    {src} {arrow}|{lbl}| {tgt}")
 
         return "\n".join(lines)

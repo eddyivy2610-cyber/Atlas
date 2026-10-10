@@ -4,7 +4,7 @@ import ast
 import hashlib
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from umldoc.ir.base import (
     ElementKind,
@@ -15,9 +15,15 @@ from umldoc.ir.base import (
 from umldoc.ir.static_model import (
     AttributeIR,
     ClassIR,
+    ComponentConnectorIR,
+    ComponentModelIR,
+    ComponentNodeIR,
     FunctionIR,
     MethodIR,
     ModuleIR,
+    PackageDependencyIR,
+    PackageModelIR,
+    PackageNodeIR,
     ParameterIR,
     RelationIR,
     StaticModelIR,
@@ -48,6 +54,58 @@ def _unparse_ast_node(node: Optional[ast.AST]) -> Optional[str]:
         return None
 
 
+def _infer_type_from_ast_node(node: Optional[ast.AST]) -> Optional[str]:
+    """Infer high-level semantic type from an assignment expression, distinct from initializer."""
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant):
+        if node.value is None:
+            return "None"
+        return type(node.value).__name__
+    if isinstance(node, ast.Call):
+        func = node.func
+        while isinstance(func, ast.Attribute):
+            func = func.value
+        if isinstance(func, ast.Name):
+            return func.id
+        elif isinstance(func, ast.Call):
+            return _infer_type_from_ast_node(func)
+    if isinstance(node, ast.List):
+        return "list"
+    if isinstance(node, ast.Dict):
+        return "dict"
+    if isinstance(node, ast.Set):
+        return "set"
+    if isinstance(node, ast.Tuple):
+        return "tuple"
+    if isinstance(node, ast.Lambda):
+        return "Callable"
+    return None
+
+
+DEFAULT_EXCLUDES: Set[str] = {
+    # Virtual environments & package managers
+    "venv", ".venv", "env", ".env", "virtualenv", ".virtualenv",
+    "site-packages", "node_modules", "bower_components",
+    "lib", "lib64", "include", "scripts",
+    # Build & distribution
+    "build", "dist", "target", "out", "bin", "obj",
+    "egg-info", ".eggs",
+    # Version control & IDE
+    ".git", ".svn", ".hg", ".github", ".gitlab", ".vscode", ".idea",
+    # Caches & temporary data
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+    ".tox", "htmlcov", ".coverage", "cache", ".cache", "tmp", "temp",
+    # Non-system assets & documentation
+    "static", "templates", "public", "assets", "media", "uploads", "data",
+    "docs", "doc", "documentation", "guide", "manual",
+    # Tests & fixtures (should not be included in production system architecture)
+    "tests", "test", "testing", "fixtures", "mocks", "spec", "specs",
+    # Database migrations boilerplate
+    "migrations",
+}
+
+
 class ASTStaticExtractor:
     """Extracts static UML architectural models directly from Python source code AST."""
 
@@ -60,23 +118,58 @@ class ASTStaticExtractor:
         self._class_lookup: Dict[str, ClassIR] = {}
         self._class_calls: List[Dict[str, Any]] = []
 
-    def extract_directory(self, target_dir: Optional[str] = None, exclude_dirs: Optional[Set[str]] = None) -> StaticModelIR:
-        """Extract static architecture across all Python files in directory tree."""
+    @staticmethod
+    def is_test_file(filename: str) -> bool:
+        """Check whether a python file is a test/mock file rather than production system code."""
+        name_lower = filename.lower()
+        if not name_lower.endswith(".py"):
+            return True
+        stem = name_lower[:-3]
+        if stem.startswith("test_") or stem.endswith("_test") or stem == "test":
+            return True
+        if stem.startswith("tests_") or stem.endswith("_tests") or stem == "tests":
+            return True
+        if stem.startswith("mock_") or stem.startswith("fixture_"):
+            return True
+        if stem in ("conftest", "generate_test_data", "test_backend", "setup"):
+            return True
+        return False
+
+    def extract_directory(
+        self,
+        target_dir: Optional[str] = None,
+        exclude_dirs: Optional[Set[str]] = None,
+        filter_tests: bool = True,
+    ) -> StaticModelIR:
+        """Extract static architecture across all system Python files in directory tree."""
         search_path = Path(target_dir).resolve() if target_dir else self.root_path
-        excludes = exclude_dirs or {"venv", ".venv", "__pycache__", ".git", "build", "dist", "site-packages"}
+        excludes = {d.lower() for d in (exclude_dirs or DEFAULT_EXCLUDES)}
 
         py_files: List[Path] = []
         for root, dirs, files in os.walk(search_path):
-            dirs[:] = [d for d in dirs if d not in excludes and not d.startswith(".")]
+            # Exclude non-system directories case-insensitively and hidden folders
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".")
+                and d.lower() not in excludes
+                and not d.lower().endswith(".egg-info")
+                and not d.lower().endswith("-dist-info")
+            ]
             for file in files:
-                if file.endswith(".py"):
-                    py_files.append(Path(root) / file)
+                if not file.endswith(".py") or file.startswith("."):
+                    continue
+                if filter_tests and self.is_test_file(file):
+                    continue
+                py_files.append(Path(root) / file)
 
         for py_file in sorted(py_files):
             self.extract_file(py_file)
 
-        # Resolve inter-class structural relations
+        # Resolve inter-class and inter-module structural relations
         self._infer_relationships()
+
+        package_model = self._build_package_model()
+        component_model = self._build_component_model()
 
         return StaticModelIR(
             project_name=self.project_name,
@@ -84,6 +177,8 @@ class ASTStaticExtractor:
             modules=self.modules,
             classes=self.classes,
             relations=self.relations,
+            packages=package_model,
+            components=component_model,
             metadata={"extractor": "ASTStaticExtractor", "file_count": str(len(py_files))},
         )
 
@@ -131,6 +226,49 @@ class ASTStaticExtractor:
                 module_functions.append(fn_ir)
 
         end_line = len(source_code.splitlines()) or 1
+
+        # If this module has no classes, but defines functions or constants, synthesize an architectural Module entity
+        if not module_classes and (module_functions or module_name != "__init__"):
+            mod_attrs = self._extract_module_attributes(tree, qualified_module, rel_path)
+            mod_methods = [
+                MethodIR(
+                    id=f"{qualified_module}.{fn.name}",
+                    name=fn.name,
+                    parameters=fn.parameters,
+                    return_type=fn.return_type,
+                    decorators=fn.decorators,
+                    visibility=MemberVisibility.PUBLIC if not fn.name.startswith("_") else MemberVisibility.PRIVATE,
+                    is_async=fn.is_async,
+                    is_static=True,
+                    docstring=fn.docstring,
+                    source_location=fn.source_location,
+                )
+                for fn in module_functions
+            ]
+            display_name = qualified_module if "." in qualified_module else module_name
+            mod_class_ir = ClassIR(
+                id=qualified_module,
+                name=display_name,
+                qualified_name=qualified_module,
+                kind=ElementKind.MODULE,
+                docstring=module_docstring,
+                attributes=mod_attrs,
+                methods=mod_methods,
+                source_location=SourceLocation(
+                    file_path=rel_path,
+                    start_line=1,
+                    end_line=end_line,
+                    start_col=0,
+                    end_col=0,
+                    content_hash=_compute_hash(source_code),
+                ),
+            )
+            module_classes.append(mod_class_ir)
+            self.classes.append(mod_class_ir)
+            self._class_lookup[qualified_module] = mod_class_ir
+            self._class_lookup[module_name] = mod_class_ir
+            self._class_lookup[display_name] = mod_class_ir
+
         mod_ir = ModuleIR(
             id=qualified_module,
             name=module_name,
@@ -152,6 +290,57 @@ class ASTStaticExtractor:
         self.modules.append(mod_ir)
         return mod_ir
 
+    def _extract_module_attributes(self, tree: ast.AST, module_qual: str, file_path: str) -> List[AttributeIR]:
+        """Extract top-level module constants and variables as architectural attributes."""
+        attrs: List[AttributeIR] = []
+        for node in getattr(tree, "body", []):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        name = target.id
+                        if not (name.startswith("__") and name.endswith("__")):
+                            inferred_type = _infer_type_from_ast_node(node.value) if hasattr(node, "value") else None
+                            val_str = _unparse_ast_node(node.value) if hasattr(node, "value") else None
+                            if val_str and len(val_str) > 40:
+                                val_str = val_str[:37] + "..."
+                            attrs.append(
+                                AttributeIR(
+                                    id=f"{module_qual}.{name}",
+                                    name=name,
+                                    type_annotation=inferred_type,
+                                    default_value=val_str,
+                                    visibility=MemberVisibility.PUBLIC if not name.startswith("_") else MemberVisibility.PRIVATE,
+                                    is_class_variable=True,
+                                    source_location=SourceLocation(
+                                        file_path=file_path,
+                                        start_line=node.lineno,
+                                        end_line=getattr(node, "end_lineno", node.lineno),
+                                        start_col=node.col_offset,
+                                    ),
+                                )
+                            )
+            elif isinstance(node, ast.AnnAssign):
+                if isinstance(node.target, ast.Name):
+                    name = node.target.id
+                    if not (name.startswith("__") and name.endswith("__")):
+                        attrs.append(
+                            AttributeIR(
+                                id=f"{module_qual}.{name}",
+                                name=name,
+                                type_annotation=_unparse_ast_node(node.annotation),
+                                default_value=_unparse_ast_node(node.value) if node.value else None,
+                                visibility=MemberVisibility.PUBLIC if not name.startswith("_") else MemberVisibility.PRIVATE,
+                                is_class_variable=True,
+                                source_location=SourceLocation(
+                                    file_path=file_path,
+                                    start_line=node.lineno,
+                                    end_line=getattr(node, "end_lineno", node.lineno),
+                                    start_col=node.col_offset,
+                                ),
+                            )
+                        )
+        return attrs[:15]
+
     def _extract_imports(self, tree: ast.AST) -> List[str]:
         """Extract import statements from module AST."""
         imports: List[str] = []
@@ -172,13 +361,16 @@ class ASTStaticExtractor:
         class_name = node.name
         qualified_name = f"{module_qual}.{class_name}"
         docstring = ast.get_docstring(node)
-        bases = [_unparse_ast_node(b) for b in node.bases if _unparse_ast_node(b)]
+        raw_bases = [_unparse_ast_node(b) for b in node.bases]
+        bases: List[str] = [b for b in raw_bases if b is not None]
 
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
-        is_abstract = "ABC" in bases or any("abstractmethod" in (d or "") for d in decorators)
-        is_protocol = "Protocol" in bases or any("Protocol" in b for b in bases)
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
+
+        is_abstract = "ABC" in bases or any("abstractmethod" in d for d in decorators)
+        is_protocol = any("Protocol" in b for b in bases)
         is_dataclass = any("dataclass" in d for d in decorators)
-        is_enum = "Enum" in bases or "IntEnum" in bases or "StrEnum" in bases
+        is_enum = any(b in ("Enum", "IntEnum", "StrEnum") for b in bases)
 
         kind = ElementKind.CLASS
         if is_protocol:
@@ -328,7 +520,8 @@ class ASTStaticExtractor:
     ) -> MethodIR:
         """Extract MethodIR details from a method node inside a class."""
         method_name = node.name
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
         is_async = isinstance(node, ast.AsyncFunctionDef)
         is_static = any("staticmethod" in d for d in decorators)
         is_classmethod = any("classmethod" in d for d in decorators)
@@ -371,7 +564,8 @@ class ASTStaticExtractor:
     ) -> FunctionIR:
         """Extract standalone module function."""
         fn_name = node.name
-        decorators = [_unparse_ast_node(d) for d in node.decorator_list if _unparse_ast_node(d)]
+        raw_decs = [_unparse_ast_node(d) for d in node.decorator_list]
+        decorators: List[str] = [d for d in raw_decs if d is not None]
         params = self._extract_parameters(node.args)
         return_type = _unparse_ast_node(node.returns)
         node_source = _unparse_ast_node(node) or ""
@@ -538,6 +732,32 @@ class ASTStaticExtractor:
                         )
                     )
 
+        # 5. Dependency relations between modules/classes from import statements
+        for mod in self.modules:
+            src_cls = self._find_class(mod.qualified_name) or self._find_class(mod.name)
+            if not src_cls:
+                continue
+            for imp in mod.imports:
+                tgt_cls = self._find_class(imp)
+                if not tgt_cls and "." in imp:
+                    prefix, suffix = imp.rsplit(".", 1)
+                    tgt_cls = self._find_class(prefix) or self._find_class(suffix)
+                if tgt_cls and tgt_cls.id != src_cls.id:
+                    pair = (src_cls.id, tgt_cls.id)
+                    if pair not in existing_pairs:
+                        existing_pairs.add(pair)
+                        rel_counter += 1
+                        self.relations.append(
+                            RelationIR(
+                                id=f"rel_{rel_counter}",
+                                source_id=src_cls.id,
+                                target_id=tgt_cls.id,
+                                relation_type=RelationType.DEPENDENCY,
+                                label="imports",
+                                source_location=mod.source_location,
+                            )
+                        )
+
     def _find_class(self, type_str: str) -> Optional[ClassIR]:
         """Look up known ClassIR by simple or qualified name."""
         clean_name = type_str.strip().strip("'\"")
@@ -553,3 +773,432 @@ class ASTStaticExtractor:
             if qual_name.endswith(f".{clean_name}") or qual_name == clean_name:
                 return cls_obj
         return None
+
+    def _build_package_model(self) -> PackageModelIR:
+        """Extract package dependency graph, coupling metrics, and cyclic dependencies."""
+        from collections import defaultdict
+
+        # 1. Group modules by package name/directory
+        pkg_modules = defaultdict(list)
+        pkg_classes = defaultdict(list)
+        pkg_functions_count = defaultdict(int)
+        pkg_docs = {}
+
+        for mod in self.modules:
+            # Determine package name
+            q_parts = mod.qualified_name.split(".")
+            if len(q_parts) > 1:
+                pkg_name = q_parts[0]
+            else:
+                f_parts = Path(mod.file_path).parts
+                if len(f_parts) > 1:
+                    pkg_name = f_parts[0]
+                else:
+                    pkg_name = "core"
+
+            if pkg_name == "__init__":
+                pkg_name = "core"
+
+            pkg_modules[pkg_name].append(mod.qualified_name)
+            pkg_classes[pkg_name].extend([c.name for c in mod.classes if c.kind != ElementKind.MODULE])
+            pkg_functions_count[pkg_name] += len(mod.functions)
+            if mod.name == "__init__" and mod.docstring:
+                pkg_docs[pkg_name] = mod.docstring
+
+        all_pkgs = set(pkg_modules.keys())
+        if not all_pkgs:
+            return PackageModelIR()
+
+        # 2. Extract dependencies between packages from module imports
+        dep_matrix = defaultdict(lambda: {"count": 0, "symbols": set()})
+        for mod in self.modules:
+            q_parts = mod.qualified_name.split(".")
+            src_pkg = q_parts[0] if len(q_parts) > 1 else "core"
+            if src_pkg == "__init__":
+                src_pkg = "core"
+
+            for imp in mod.imports:
+                imp_parts = imp.split(".")
+                tgt_pkg = None
+                if imp_parts[0] in all_pkgs and imp_parts[0] != src_pkg:
+                    tgt_pkg = imp_parts[0]
+                elif len(imp_parts) > 1 and imp_parts[1] in all_pkgs and imp_parts[1] != src_pkg:
+                    tgt_pkg = imp_parts[1]
+
+                if tgt_pkg and tgt_pkg in all_pkgs and tgt_pkg != src_pkg:
+                    key = (src_pkg, tgt_pkg)
+                    dep_matrix[key]["count"] += 1
+                    dep_matrix[key]["symbols"].add(imp)
+
+        # 3. Compute Martin's Afferent (Ca) and Efferent (Ce) Couplings
+        ca_counts = defaultdict(int)
+        ce_counts = defaultdict(int)
+        for (src, tgt) in dep_matrix.keys():
+            ce_counts[src] += 1
+            ca_counts[tgt] += 1
+
+        # 4. Cycle Detection using DFS
+        adj = defaultdict(set)
+        for (src, tgt) in dep_matrix.keys():
+            adj[src].add(tgt)
+
+        cycles: List[List[str]] = []
+        visited = {}
+        path = []
+
+        def dfs(node):
+            visited[node] = 1
+            path.append(node)
+            for neighbor in sorted(adj.get(node, [])):
+                if visited.get(neighbor) == 1:
+                    idx = path.index(neighbor)
+                    cycle = path[idx:] + [neighbor]
+                    cycles.append(cycle)
+                elif visited.get(neighbor, 0) == 0:
+                    dfs(neighbor)
+            path.pop()
+            visited[node] = 2
+
+        for pkg in sorted(all_pkgs):
+            if visited.get(pkg, 0) == 0:
+                dfs(pkg)
+
+        cyclic_edges = set()
+        for cyc in cycles:
+            for k in range(len(cyc) - 1):
+                cyclic_edges.add((cyc[k], cyc[k + 1]))
+
+        # 5. Build PackageNodeIR objects
+        package_nodes: List[PackageNodeIR] = []
+        for pkg_name in sorted(all_pkgs):
+            ca = ca_counts[pkg_name]
+            ce = ce_counts[pkg_name]
+            instability = round(ce / (ca + ce), 3) if (ca + ce) > 0 else 0.0
+            package_nodes.append(
+                PackageNodeIR(
+                    id=f"pkg_{pkg_name}",
+                    name=pkg_name,
+                    path=f"{pkg_name}/",
+                    modules=pkg_modules[pkg_name],
+                    classes=pkg_classes[pkg_name],
+                    functions_count=pkg_functions_count[pkg_name],
+                    afferent_coupling=ca,
+                    efferent_coupling=ce,
+                    instability=instability,
+                    is_leaf=True,
+                    docstring=pkg_docs.get(pkg_name),
+                )
+            )
+
+        # 6. Build PackageDependencyIR objects
+        dep_counter = 0
+        dependencies: List[PackageDependencyIR] = []
+        for (src, tgt), data in sorted(dep_matrix.items()):
+            dep_counter += 1
+            is_cyc = (src, tgt) in cyclic_edges
+            dependencies.append(
+                PackageDependencyIR(
+                    id=f"pkg_dep_{dep_counter}",
+                    source_package=src,
+                    target_package=tgt,
+                    import_count=data["count"],
+                    imported_symbols=sorted(list(data["symbols"])),
+                    is_cyclic=is_cyc,
+                )
+            )
+
+        return PackageModelIR(
+            packages=package_nodes,
+            dependencies=dependencies,
+            has_cycles=len(cycles) > 0,
+            cycles=cycles,
+        )
+
+    def _build_component_model(self) -> ComponentModelIR:
+        """Extract readable architectural component nodes (5-12 nodes), layers, and short connectors."""
+        raw_candidates: List[Dict[str, Any]] = []
+
+        for cls in self.classes:
+            c_name = cls.name
+            c_lower = c_name.lower()
+
+            is_comp = (
+                cls.kind in (ElementKind.INTERFACE, ElementKind.PROTOCOL, ElementKind.MODULE)
+                or cls.is_abstract
+                or any(k in c_lower for k in (
+                    "service", "engine", "server", "verifier", "extractor",
+                    "parser", "generator", "bundler", "tracer", "cli", "gateway",
+                    "repository", "comparator", "drift", "controller", "handler",
+                    "manager", "client", "adapter", "store", "database", "runner",
+                    "model", "document"
+                ))
+            )
+            if not is_comp:
+                continue
+
+            # Semantic layering & roles with priority order
+            if any(k in c_lower for k in ("path", "paths", "config", "settings", "env", "dir", "directory", "runtime")):
+                tier = "Infrastructure / Data"
+                role = "Infrastructure"
+                layer_level = 3
+                semantic_color = "#64748B"  # slate
+                stereo = "«infrastructure»"
+            elif c_lower in ("desktop_launcher", "run", "main", "cli", "launcher") or c_lower.endswith("_launcher") or c_lower.endswith("_cli"):
+                tier = "Entry Points"
+                role = "Entry Point"
+                layer_level = 0
+                semantic_color = "#7C3AED"  # violet
+                stereo = "«entrypoint»"
+            elif c_lower == "app" or c_lower.endswith("_app") or any(k in c_lower for k in ("controller", "server", "handler", "view", "router", "endpoint")):
+                tier = "Presentation / Controller"
+                role = "Controller / Presentation"
+                layer_level = 1
+                semantic_color = "#2563EB"  # blue
+                stereo = "«controller»"
+            elif any(k in c_lower for k in ("repository", "database", "storage", "store", "table", "cache", "dao", "db")):
+                tier = "Infrastructure / Data"
+                role = "Infrastructure / Data"
+                layer_level = 3
+                semantic_color = "#D97706"  # amber
+                stereo = "«database»" if "database" in c_lower or "db" in c_lower else "«repository»"
+            elif any(k in c_lower for k in ("gateway", "adapter", "client", "external", "stripe", "paypal")):
+                tier = "Infrastructure / Data"
+                role = "External System"
+                layer_level = 4
+                semantic_color = "#64748B"  # gray
+                stereo = "«gateway»" if "gateway" in c_lower else "«external»"
+            elif any(k in c_lower for k in ("generator", "bundler", "parser", "tracer", "verifier", "ast", "extractor")):
+                tier = "Infrastructure / Data"
+                role = "Infrastructure"
+                layer_level = 3
+                semantic_color = "#D97706"  # amber
+                stereo = "«infrastructure»"
+            elif any(k in c_lower for k in ("model", "entity", "schema", "record", "order", "product", "item", "user", "cart")):
+                tier = "Core Domain"
+                role = "Core Domain"
+                layer_level = 2
+                semantic_color = "#10B981"  # green
+                stereo = "«domain»"
+            else:
+                tier = "Application Services"
+                role = "Application Service"
+                layer_level = 2
+                semantic_color = "#16A34A"  # green
+                stereo = "«service»" if "service" in c_lower else "«component»"
+
+            pub_methods = [m.name for m in cls.methods if not m.name.startswith("_")]
+            required = [
+                a.type_annotation for a in cls.attributes
+                if a.type_annotation and any(s in a.type_annotation.lower() for s in ("service", "repo", "store", "client", "engine"))
+            ]
+            pkg_name = cls.qualified_name.split(".")[0] if "." in cls.qualified_name else None
+            rel_file = cls.source_location.file_path if cls.source_location else None
+            line = cls.source_location.start_line if cls.source_location else 1
+
+            raw_candidates.append({
+                "cls": cls,
+                "name": c_name,
+                "stereo": stereo,
+                "tier": tier,
+                "role": role,
+                "layer_level": layer_level,
+                "semantic_color": semantic_color,
+                "package": pkg_name,
+                "file": rel_file,
+                "line": line,
+                "provided": pub_methods,
+                "required": required,
+                "docstring": cls.docstring,
+                "weight": len(pub_methods) + (10 if "service" in c_lower or "engine" in c_lower or "server" in c_lower or "cli" in c_lower else 0),
+            })
+
+        # Keep the node count low (prefer 5-12 major architectural nodes)
+        # If > 12 candidates, cluster secondary classes under the primary nodes
+        MAX_NODES = 12
+        raw_candidates.sort(key=lambda c: c["weight"], reverse=True)
+
+        component_nodes: List[ComponentNodeIR] = []
+        comp_lookup: Dict[str, str] = {}  # class_name -> component_id
+
+        if len(raw_candidates) <= MAX_NODES:
+            selected_candidates = raw_candidates
+            collapsed_candidates: List[Dict[str, Any]] = []
+        else:
+            # Ensure representation from each tier, up to MAX_NODES
+            selected_candidates = []
+            selected_names = set()
+            by_tier: Dict[str, List[Dict[str, Any]]] = {}
+            for cand in raw_candidates:
+                by_tier.setdefault(cand["tier"], []).append(cand)
+
+            # Pick top from each tier
+            for t, t_cands in by_tier.items():
+                top = t_cands[0]
+                selected_candidates.append(top)
+                selected_names.add(top["name"])
+
+            # Fill remainder up to MAX_NODES by weight
+            for cand in raw_candidates:
+                if len(selected_candidates) >= MAX_NODES:
+                    break
+                if cand["name"] not in selected_names:
+                    selected_candidates.append(cand)
+                    selected_names.add(cand["name"])
+
+            collapsed_candidates = [c for c in raw_candidates if c["name"] not in selected_names]
+
+        # Build initial component nodes
+        for cand in selected_candidates:
+            cid = f"comp_{cand['name']}"
+            cnode = ComponentNodeIR(
+                id=cid,
+                name=cand["name"],
+                stereotype=cand["stereo"],
+                tier=cand["tier"],
+                role=cand["role"],
+                layer_level=cand["layer_level"],
+                semantic_color=cand["semantic_color"],
+                package=cand["package"],
+                file=cand["file"],
+                line=cand["line"],
+                provided_interfaces=cand["provided"][:6],
+                required_interfaces=cand["required"][:6],
+                encapsulated_classes=[cand["name"]],
+                docstring=cand["docstring"],
+                functions_count=len(cand["provided"]),
+                dependencies_count=0,
+            )
+            component_nodes.append(cnode)
+            comp_lookup[cand["name"]] = cid
+            comp_lookup[cand["cls"].id] = cid
+
+        # Collapse secondary candidates into the most appropriate selected node (same tier / package)
+        for cand in collapsed_candidates:
+            # Find best matching selected component
+            target_node = None
+            for n in component_nodes:
+                if n.package and cand["package"] and n.package == cand["package"]:
+                    target_node = n
+                    break
+            if not target_node:
+                for n in component_nodes:
+                    if n.tier == cand["tier"]:
+                        target_node = n
+                        break
+            if not target_node and component_nodes:
+                target_node = component_nodes[0]
+
+            if target_node:
+                comp_lookup[cand["name"]] = target_node.id
+                comp_lookup[cand["cls"].id] = target_node.id
+                # Append to encapsulated classes
+                new_encaps = target_node.encapsulated_classes + [cand["name"]]
+                new_funcs = target_node.functions_count + len(cand["provided"])
+                # Reconstruct frozen ComponentNodeIR with updated values
+                idx = component_nodes.index(target_node)
+                component_nodes[idx] = ComponentNodeIR(
+                    id=target_node.id,
+                    name=target_node.name,
+                    stereotype=target_node.stereotype,
+                    tier=target_node.tier,
+                    role=target_node.role,
+                    layer_level=target_node.layer_level,
+                    semantic_color=target_node.semantic_color,
+                    package=target_node.package,
+                    file=target_node.file,
+                    line=target_node.line,
+                    provided_interfaces=target_node.provided_interfaces,
+                    required_interfaces=target_node.required_interfaces,
+                    encapsulated_classes=new_encaps,
+                    docstring=target_node.docstring,
+                    functions_count=new_funcs,
+                    dependencies_count=target_node.dependencies_count,
+                )
+
+        # Connectors extraction with short edge labels and visual styles
+        connectors: List[ComponentConnectorIR] = []
+        conn_counter = 0
+        seen_conns = set()
+        outgoing_dep_counts: Dict[str, int] = {c.id: 0 for c in component_nodes}
+
+        for r in self.relations:
+            src_cid = comp_lookup.get(r.source_id) or comp_lookup.get(r.source_id.split(".")[-1])
+            tgt_cid = comp_lookup.get(r.target_id) or comp_lookup.get(r.target_id.split(".")[-1])
+
+            if src_cid and tgt_cid and src_cid != tgt_cid:
+                key = (src_cid, tgt_cid)
+                if key not in seen_conns:
+                    seen_conns.add(key)
+                    conn_counter += 1
+
+                    # Short edge labels: calls, uses, reads, writes, imports
+                    lbl_lower = (r.label or "").lower()
+                    if any(k in lbl_lower for k in ("call", "invoke", "execute", "run")):
+                        short_lbl = "calls"
+                        style = "solid"
+                    elif any(k in lbl_lower for k in ("read", "get", "find", "query", "fetch", "check")):
+                        short_lbl = "reads"
+                        style = "solid"
+                    elif any(k in lbl_lower for k in ("write", "save", "persist", "store", "create", "insert")):
+                        short_lbl = "writes"
+                        style = "solid"
+                    elif any(k in lbl_lower for k in ("import", "require")):
+                        short_lbl = "imports"
+                        style = "dashed"
+                    elif r.relation_type == RelationType.REALIZATION:
+                        short_lbl = "realizes"
+                        style = "dashed"
+                    elif r.relation_type == RelationType.INHERITANCE:
+                        short_lbl = "extends"
+                        style = "dashed"
+                    elif r.relation_type == RelationType.DEPENDENCY:
+                        short_lbl = "uses"
+                        style = "dashed"
+                    else:
+                        short_lbl = "uses"
+                        style = "solid"
+
+                    connectors.append(
+                        ComponentConnectorIR(
+                            id=f"conn_{conn_counter}",
+                            source_id=src_cid,
+                            target_id=tgt_cid,
+                            connector_type=short_lbl,
+                            label=short_lbl,
+                            relationship_style=style,
+                        )
+                    )
+                    outgoing_dep_counts[src_cid] = outgoing_dep_counts.get(src_cid, 0) + 1
+
+        # Final pass: update dependencies_count on components
+        final_nodes: List[ComponentNodeIR] = []
+        for c in component_nodes:
+            dep_cnt = outgoing_dep_counts.get(c.id, 0)
+            final_nodes.append(
+                ComponentNodeIR(
+                    id=c.id,
+                    name=c.name,
+                    stereotype=c.stereotype,
+                    tier=c.tier,
+                    role=c.role,
+                    layer_level=c.layer_level,
+                    semantic_color=c.semantic_color,
+                    package=c.package,
+                    file=c.file,
+                    line=c.line,
+                    provided_interfaces=c.provided_interfaces,
+                    required_interfaces=c.required_interfaces,
+                    encapsulated_classes=c.encapsulated_classes,
+                    docstring=c.docstring,
+                    functions_count=c.functions_count,
+                    dependencies_count=dep_cnt,
+                )
+            )
+
+        # Standard ordered tiers: Presentation, Domain Service, Core Domain, Data & Persistence, Infrastructure
+        tiers = ["Presentation / API", "Domain Service", "Core Domain", "Data & Persistence", "Infrastructure"]
+        return ComponentModelIR(
+            components=final_nodes,
+            connectors=connectors,
+            tiers=tiers,
+        )

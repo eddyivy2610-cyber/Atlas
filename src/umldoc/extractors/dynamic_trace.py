@@ -57,15 +57,21 @@ class ExecutionTracer:
         entrypoint_name: str = "main",
         include_prefixes: Optional[Set[str]] = None,
         exclude_prefixes: Optional[Set[str]] = None,
+        project_root: Optional[str] = None,
     ):
         self.scenario_name = scenario_name
         self.entrypoint_name = entrypoint_name
         self.include_prefixes = include_prefixes or set()
+        self.project_root = os.path.abspath(project_root) if project_root else None
         self.exclude_prefixes = exclude_prefixes or {
             "builtins", "typing", "pytest", "_pytest", "pluggy", "unittest",
             "importlib", "sys", "os", "asyncio", "anyio", "sniffio", "selectors",
             "concurrent", "contextvars", "socket", "ssl", "threading", "queue",
             "urllib", "email", "encodings", "abc", "posixpath", "genericpath",
+            "ntpath", "runpy", "pkgutil", "zipimport", "linecache", "tokenize",
+            "inspect", "traceback", "click", "pydantic", "collections", "re",
+            "weakref", "types", "enum", "functools", "warnings", "site",
+            "umldoc",
         }
         self.participants: Dict[str, ParticipantIR] = {}
         self.interactions: List[InteractionIR] = []
@@ -121,7 +127,8 @@ class ExecutionTracer:
         if fn_name in {
             "__getattr__", "__getattribute__", "__setattr__", "__delattr__",
             "__dir__", "__hash__", "__repr__", "__str__", "__len__", "__bool__",
-            "__instancecheck__", "__subclasscheck__"
+            "__instancecheck__", "__subclasscheck__",
+            "<genexpr>", "<listcomp>", "<dictcomp>", "<setcomp>",
         }:
             return False
 
@@ -136,16 +143,34 @@ class ExecutionTracer:
             if module_name == ex or module_name.startswith(f"{ex}."):
                 return False
 
-        # If include prefixes specified, check match
+        # If include prefixes specified, check match first (allows tracing specific libraries like httpx if requested)
         if self.include_prefixes:
             return any(module_name == inc or module_name.startswith(f"{inc}.") for inc in self.include_prefixes)
 
-        # Skip Python stdlib files if inspectable
-        filename = frame.f_code.co_filename
-        if "site-packages" in filename:
+        # Ignore anything in site-packages or standard library internals
+        filename = frame.f_code.co_filename or ""
+        if not filename or filename.startswith("<"):
+            return False
+        norm_file = os.path.abspath(filename)
+        if "site-packages" in norm_file or ".venv" in norm_file:
             return False
 
+        # If project_root is specified, restrict to files under project_root
+        if self.project_root:
+            return norm_file.startswith(self.project_root)
+
         return True
+
+    def _get_rel_file(self, raw_path: str) -> Optional[str]:
+        if not raw_path or raw_path.startswith("<"):
+            return None
+        norm = os.path.abspath(raw_path)
+        if self.project_root and norm.startswith(self.project_root):
+            try:
+                return os.path.relpath(norm, self.project_root).replace("\\", "/")
+            except ValueError:
+                return norm.replace("\\", "/")
+        return norm.replace("\\", "/")
 
     def _get_or_create_participant(self, frame) -> ParticipantIR:
         """Resolve lifeline participant from frame (object instance or module)."""
@@ -153,6 +178,8 @@ class ExecutionTracer:
         if instance is None:
             instance = frame.f_locals.get("cls")
         module_name = frame.f_globals.get("__name__", "")
+        raw_file = frame.f_code.co_filename or frame.f_globals.get("__file__") or ""
+        rel_file = self._get_rel_file(raw_file)
 
         if instance is not None:
             if isinstance(instance, type):
@@ -165,6 +192,8 @@ class ExecutionTracer:
                         name=display_name,
                         class_name=cls_name,
                         module_name=module_name,
+                        file=rel_file,
+                        kind="class",
                     )
                 return self.participants[part_id]
             else:
@@ -179,6 +208,8 @@ class ExecutionTracer:
                         class_name=cls_name,
                         module_name=module_name,
                         instance_id=inst_id,
+                        file=rel_file,
+                        kind="service" if any(s in cls_name.lower() for s in ("service", "manager", "engine", "handler")) else "class",
                     )
                 return self.participants[part_id]
         else:
@@ -190,6 +221,8 @@ class ExecutionTracer:
                     name=display_name,
                     class_name=None,
                     module_name=module_name,
+                    file=rel_file,
+                    kind="module" if module_name else "actor",
                 )
             return self.participants[part_id]
 
@@ -230,6 +263,7 @@ class ExecutionTracer:
 
         event_id = f"evt_{self.sequence_counter}"
         self.sequence_counter += 1
+        rel_file = self._get_rel_file(frame.f_code.co_filename or "")
 
         interaction = InteractionIR(
             event_id=event_id,
@@ -241,6 +275,7 @@ class ExecutionTracer:
             sequence_order=self.sequence_counter,
             call_depth=depth,
             line_number=frame.f_lineno,
+            file=rel_file,
         )
         self.interactions.append(interaction)
         self.call_stack.append((callee_part.id, fn_name, time.perf_counter(), event_id, depth, caller_part_id))
@@ -260,6 +295,7 @@ class ExecutionTracer:
                 )
 
                 self.sequence_counter += 1
+                rel_file = self._get_rel_file(frame.f_code.co_filename or "")
                 interaction = InteractionIR(
                     event_id=f"ret_{self.sequence_counter}",
                     event_type=InteractionEventType.RETURN,
@@ -271,6 +307,7 @@ class ExecutionTracer:
                     call_depth=depth,
                     duration_ms=round(duration_ms, 3),
                     line_number=frame.f_lineno,
+                    file=rel_file,
                 )
                 self.interactions.append(interaction)
 
@@ -284,6 +321,7 @@ class ExecutionTracer:
                     line_number=frame.f_lineno,
                 )
                 self.sequence_counter += 1
+                rel_file = self._get_rel_file(frame.f_code.co_filename or "")
                 interaction = InteractionIR(
                     event_id=f"exc_{self.sequence_counter}",
                     event_type=InteractionEventType.EXCEPTION,
@@ -294,6 +332,7 @@ class ExecutionTracer:
                     sequence_order=self.sequence_counter,
                     call_depth=depth,
                     line_number=frame.f_lineno,
+                    file=rel_file,
                 )
                 self.interactions.append(interaction)
 

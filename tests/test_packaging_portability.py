@@ -66,6 +66,12 @@ def test_portable_bundle_packaging(project_name: str):
         assert (bundle_dir / "architecture.puml").exists()
         assert (bundle_dir / "architecture.mmd").exists()
         assert (bundle_dir / "architecture.svg").exists()
+        assert (bundle_dir / "packages.puml").exists()
+        assert (bundle_dir / "packages.mmd").exists()
+        assert (bundle_dir / "packages.svg").exists()
+        assert (bundle_dir / "components.puml").exists()
+        assert (bundle_dir / "components.mmd").exists()
+        assert (bundle_dir / "components.svg").exists()
         assert (bundle_dir / "document_ir.json").exists()
 
         # 4. Assert .zip Archive Integrity
@@ -81,6 +87,12 @@ def test_portable_bundle_packaging(project_name: str):
             assert "architecture.puml" in namelist
             assert "architecture.mmd" in namelist
             assert "architecture.svg" in namelist
+            assert "packages.puml" in namelist
+            assert "packages.mmd" in namelist
+            assert "packages.svg" in namelist
+            assert "components.puml" in namelist
+            assert "components.mmd" in namelist
+            assert "components.svg" in namelist
             assert "document_ir.json" in namelist
 
         # 5. Zero-Dependency & Portability Invariants on index.html

@@ -54,3 +54,23 @@ def test_plantuml_and_mermaid_generation():
     assert "sequenceDiagram" in mmd_seq
     assert "autonumber" in mmd_seq
     assert "register_user" in mmd_seq
+
+    # Test PlantUML Package Diagram
+    puml_pkg = PlantUMLGenerator.generate_package_diagram(static_model)
+    assert "@startuml" in puml_pkg
+    assert "packageStyle folder" in puml_pkg
+    assert "@enduml" in puml_pkg
+
+    # Test PlantUML Component Diagram
+    puml_comp = PlantUMLGenerator.generate_component_diagram(static_model)
+    assert "@startuml" in puml_comp
+    assert "componentStyle uml2" in puml_comp
+    assert "@enduml" in puml_comp
+
+    # Test Mermaid Package Diagram
+    mmd_pkg = MermaidGenerator.generate_package_diagram(static_model)
+    assert "flowchart TB" in mmd_pkg
+
+    # Test Mermaid Component Diagram
+    mmd_comp = MermaidGenerator.generate_component_diagram(static_model)
+    assert "flowchart TB" in mmd_comp

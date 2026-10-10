@@ -119,6 +119,95 @@ class ModuleIR(BaseModel):
     source_location: Optional[SourceLocation] = Field(default=None, description="Module source location")
 
 
+class PackageNodeIR(BaseModel):
+    """Package node representing a Python package or sub-package directory."""
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique package identifier (e.g. pkg_core or umldoc.extractors)")
+    name: str = Field(..., description="Package name")
+    path: str = Field(..., description="Relative directory path")
+    modules: List[str] = Field(default_factory=list, description="List of module names/paths contained in package")
+    classes: List[str] = Field(default_factory=list, description="List of class names declared in package")
+    functions_count: int = Field(default=0, description="Total standalone functions count")
+    afferent_coupling: int = Field(default=0, description="Ca: Number of incoming dependencies from other packages")
+    efferent_coupling: int = Field(default=0, description="Ce: Number of outgoing dependencies to other packages")
+    instability: float = Field(default=0.0, description="Martin's Instability Metric: I = Ce / (Ca + Ce)")
+    is_leaf: bool = Field(default=True, description="True if contains no child packages")
+    docstring: Optional[str] = Field(default=None, description="Package docstring from __init__.py")
+
+
+class PackageDependencyIR(BaseModel):
+    """Directed dependency link between two packages based on imports."""
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique dependency identifier")
+    source_package: str = Field(..., description="Source package name")
+    target_package: str = Field(..., description="Target package name that is imported")
+    import_count: int = Field(default=1, description="Number of import statements between packages")
+    imported_symbols: List[str] = Field(default_factory=list, description="List of imported module/class symbols")
+    is_cyclic: bool = Field(default=False, description="True if this dependency forms part of a circular loop")
+
+
+class PackageModelIR(BaseModel):
+    """Complete package dependency graph model for a codebase."""
+    model_config = ConfigDict(frozen=True)
+
+    packages: List[PackageNodeIR] = Field(default_factory=list, description="All extracted package nodes")
+    dependencies: List[PackageDependencyIR] = Field(default_factory=list, description="Package-level dependency edges")
+    has_cycles: bool = Field(default=False, description="True if any cyclic package dependencies detected")
+    cycles: List[List[str]] = Field(default_factory=list, description="List of circular dependency chains")
+
+
+class ComponentNodeIR(BaseModel):
+    """Architectural component node in a multi-tier component architecture."""
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique component identifier (e.g. comp_OrderService)")
+    name: str = Field(..., description="Component display name")
+    stereotype: str = Field(default="«component»", description="Stereotype (e.g. «service», «controller», «database»)")
+    tier: str = Field(default="Domain Service", description="Architectural tier: Presentation, Domain Service, Data, Infrastructure")
+    package: Optional[str] = Field(default=None, description="Parent package name")
+    file: Optional[str] = Field(default=None, description="Source file path")
+    line: int = Field(default=1, description="Source line number")
+    provided_interfaces: List[str] = Field(default_factory=list, description="Provided interfaces, protocols, or endpoints")
+    required_interfaces: List[str] = Field(default_factory=list, description="Required dependencies or external services")
+    encapsulated_classes: List[str] = Field(default_factory=list, description="Classes implementing this component")
+    docstring: Optional[str] = Field(default=None, description="Component docstring or responsibility description")
+    role: str = Field(default="Application Service", description="Architectural role (e.g. Entry Point, Application Service, Core Domain, Infrastructure, External)")
+    layer_level: int = Field(default=1, description="Vertical layer index (0: Entry/UI, 1: Service, 2: Core/Domain, 3: Infra/Data, 4: External)")
+    functions_count: int = Field(default=0, description="Total functions/methods in this component")
+    dependencies_count: int = Field(default=0, description="Total outgoing dependencies count")
+    semantic_color: str = Field(default="#3B82F6", description="Semantic color token (violet, blue, green, amber, gray)")
+    purpose: Optional[str] = Field(default=None, description="Short high-level responsibility summary")
+    is_external: bool = Field(default=False, description="True if external resource / service")
+    is_supporting: bool = Field(default=False, description="True if supporting infrastructure in presentation tier")
+
+
+class ComponentConnectorIR(BaseModel):
+    """Architectural connector link between two components."""
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique connector identifier")
+    source_id: str = Field(..., description="Source component ID")
+    target_id: str = Field(..., description="Target component ID")
+    interface_name: Optional[str] = Field(default=None, description="Interface or protocol connecting components")
+    connector_type: str = Field(default="uses", description="uses, realizes, calls, delegates, stores")
+    label: Optional[str] = Field(default=None, description="Connector label description (short, e.g. calls, uses, reads, writes)")
+    relationship_style: str = Field(default="solid", description="solid (confirmed call/use), dashed (static dependency), dotted (inferred)")
+
+
+class ComponentModelIR(BaseModel):
+    """Complete component architecture model with tiers and connectors."""
+    model_config = ConfigDict(frozen=True)
+
+    components: List[ComponentNodeIR] = Field(default_factory=list, description="All architectural component nodes")
+    connectors: List[ComponentConnectorIR] = Field(default_factory=list, description="Connectors between components")
+    tiers: List[str] = Field(
+        default_factory=lambda: ["Presentation / API", "Domain Service", "Data & Persistence", "Infrastructure"],
+        description="Ordered architectural tiers"
+    )
+
+
 class StaticModelIR(BaseModel):
     """Root static architecture model for a codebase snapshot."""
     model_config = ConfigDict(frozen=True)
@@ -129,4 +218,6 @@ class StaticModelIR(BaseModel):
     modules: List[ModuleIR] = Field(default_factory=list, description="Extracted modules")
     classes: List[ClassIR] = Field(default_factory=list, description="All flattened classes for quick lookup")
     relations: List[RelationIR] = Field(default_factory=list, description="All static relationships")
+    packages: Optional[PackageModelIR] = Field(default=None, description="Package hierarchy & dependency graph")
+    components: Optional[ComponentModelIR] = Field(default=None, description="Component architecture & connector topology")
     metadata: Dict[str, str] = Field(default_factory=dict, description="Additional extractor metadata")

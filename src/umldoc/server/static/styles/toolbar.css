@@ -1,0 +1,341 @@
+/* ==========================================================================
+   WORKSPACE & DIAGRAM TOOLBAR STRIP (BELOW TOPBAR)
+   ========================================================================== */
+
+.diagram-control-strip {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 20px 14px 20px;
+  gap: 12px;
+  box-shadow: var(--shadow-xs);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* --------------------------------------------------------------------------
+   ROW 1: Project Identity & High-Level KPIs
+   -------------------------------------------------------------------------- */
+.control-strip__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.control-strip__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.control-strip__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.control-strip__project-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-strip__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.control-strip__breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.control-strip__breadcrumb a:hover {
+  color: var(--primary-bg);
+}
+
+.control-strip__breadcrumb-sep {
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.control-strip__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vivid-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vivid-tag--yellow {
+  background-color: var(--badge-yellow-bg);
+  color: var(--badge-yellow-text);
+}
+
+.vivid-tag--green {
+  background-color: var(--badge-green-bg);
+  color: var(--badge-green-text);
+}
+
+.vivid-tag--primary {
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+/* Quick Metrics / KPIs */
+.control-strip__stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stat-chip__val {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   ROW 2: Controls, Diagram Switcher & Actions
+   -------------------------------------------------------------------------- */
+.control-strip__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.control-strip__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Segmented Diagram Type Switcher (Pill Group) */
+.segmented-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.segmented-btn:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .segmented-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.segmented-btn--active {
+  background: var(--primary-bg) !important;
+  color: var(--primary-text) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(9, 12, 155, 0.25);
+}
+
+[data-theme="dark"] .segmented-btn--active {
+  box-shadow: 0 2px 8px rgba(30, 38, 217, 0.35);
+}
+
+.segmented-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Scope & Filter Dropdown Pill */
+.control-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.control-pill-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.control-pill-btn svg.icon-main {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.control-pill-btn svg.chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--text-tertiary);
+}
+
+/* Symbol Search Input Pill */
+.symbol-search-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.symbol-search-box svg {
+  position: absolute;
+  left: 11px;
+  width: 13px;
+  height: 13px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.symbol-search-input {
+  height: 34px;
+  padding: 0 12px 0 32px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition-fast);
+  width: 170px;
+}
+
+.symbol-search-input:focus {
+  border-color: var(--primary-bg);
+  box-shadow: 0 0 0 3px var(--primary-subtle);
+  width: 220px;
+}
+
+.symbol-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* --------------------------------------------------------------------------
+   Right Actions Toolbar
+   -------------------------------------------------------------------------- */
+.control-strip__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+}
+
+.action-icon-btn:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.action-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Layout Orientation Switcher (TB / LR) */
+.layout-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 11px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+}
+
+.layout-toggle-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.layout-toggle-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
