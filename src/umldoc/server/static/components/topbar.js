@@ -21,7 +21,10 @@ export class TopbarComponent {
 
     this.activeDropdown = null;
     this.currentTheme = localStorage.getItem('umldoc_theme') || 'light';
-    this.currentDiagramType = 'class';
+    this.currentDiagramType = 'packages';
+    this.currentScope = 'all_packages';
+    this.currentScopeTarget = null;
+    this.packagesList = [];
     this.currentLayout = 'TB';
     this.searchTimer = null;
     this.currentProject = options.currentProject || '';
@@ -111,13 +114,41 @@ export class TopbarComponent {
       });
     }
 
-    // 6. Scope pill button
+    // 6. Scope pill button and popover
     const scopeBtn = this.container.querySelector('#btnScopeTrigger');
+    const scopePopover = this.container.querySelector('#scopePopover');
     if (scopeBtn) {
-      scopeBtn.addEventListener('click', () => {
-        this.onScopeChange('all');
+      scopeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeAllDropdowns();
+        if (scopePopover) {
+          scopePopover.classList.toggle('is-hidden');
+          if (window.lucide) window.lucide.createIcons();
+        }
       });
     }
+
+    if (scopePopover) {
+      scopePopover.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      scopePopover.querySelectorAll('.scope-menu-item[data-scope-type]').forEach(item => {
+        item.addEventListener('click', () => {
+          const scopeType = item.dataset.scopeType;
+          this.setScope(scopeType, null);
+        });
+      });
+    }
+
+    // Close scope popover when clicking anywhere outside
+    document.addEventListener('click', (e) => {
+      if (scopePopover && !scopePopover.classList.contains('is-hidden')) {
+        if (!scopePopover.contains(e.target) && (!scopeBtn || !scopeBtn.contains(e.target))) {
+          scopePopover.classList.add('is-hidden');
+        }
+      }
+    });
 
     // 7. Execution and Action buttons
     const btnRun = this.container.querySelector('#btnRunPipeline');
@@ -442,7 +473,73 @@ export class TopbarComponent {
   closeAllDropdowns() {
     this.container.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('is-open'));
     this.container.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('nav-pill--open'));
+    const scopePopover = document.getElementById('scopePopover');
+    if (scopePopover) scopePopover.classList.add('is-hidden');
     this.activeDropdown = null;
+  }
+
+  setPackages(packages = []) {
+    this.packagesList = packages;
+    const pkgListEl = document.getElementById('scopePackageList');
+    if (!pkgListEl) return;
+    pkgListEl.innerHTML = packages.map(p => {
+      const isActive = (this.currentScope === 'selected_package' && this.currentScopeTarget === p.name);
+      return `
+        <button type="button" class="scope-package-chip-btn ${isActive ? 'is-active' : ''}" data-scope-package="${p.name}" title="Drill down into ${p.name}">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: ${p.semantic_color || '#3b82f6'}; flex-shrink: 0;"></span>
+          <span>${p.name}</span>
+        </button>
+      `;
+    }).join('');
+
+    pkgListEl.querySelectorAll('[data-scope-package]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pkgName = btn.dataset.scopePackage;
+        this.setScope('selected_package', pkgName);
+      });
+    });
+  }
+
+  setScope(scopeType, targetName = null) {
+    this.currentScope = scopeType;
+    this.currentScopeTarget = targetName;
+
+    // Update label text
+    const labelEl = document.getElementById('scopeLabel');
+    if (labelEl) {
+      if (scopeType === 'all_packages') labelEl.textContent = 'All Packages';
+      else if (scopeType === 'all_classes') labelEl.textContent = 'All Classes';
+      else if (scopeType === 'selected_package') labelEl.textContent = `Package: ${targetName}`;
+      else if (scopeType === 'one_hop') labelEl.textContent = targetName ? `${targetName} (+1 hop)` : '1-Hop Neighbors';
+      else labelEl.textContent = 'Scope: Custom';
+    }
+
+    // Update active class on menu items
+    const scopePopover = document.getElementById('scopePopover');
+    if (scopePopover) {
+      scopePopover.querySelectorAll('.scope-menu-item').forEach(item => {
+        if (item.dataset.scopeType === scopeType && !targetName) {
+          item.classList.add('is-active');
+        } else {
+          item.classList.remove('is-active');
+        }
+      });
+      scopePopover.querySelectorAll('.scope-package-chip-btn').forEach(chip => {
+        if (scopeType === 'selected_package' && chip.dataset.scopePackage === targetName) {
+          chip.classList.add('is-active');
+        } else {
+          chip.classList.remove('is-active');
+        }
+      });
+      scopePopover.classList.add('is-hidden');
+    }
+
+    this.onScopeChange(scopeType, targetName);
+  }
+
+  setScopeLabel(text) {
+    const labelEl = document.getElementById('scopeLabel');
+    if (labelEl) labelEl.textContent = text;
   }
 
   applyTheme(theme) {

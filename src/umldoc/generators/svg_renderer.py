@@ -67,7 +67,7 @@ class SVGDiagramRenderer:
         """Render a StaticModelIR into a standalone, beautiful SVG image string."""
         classes = static_model.classes
         if not classes:
-            return '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100"><text x="20" y="50" fill="#94A3B8">Empty model</text></svg>'
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100"><text x="20" y="50" fill="#94A3B8">Empty model</text></svg>'
 
         # 1. Compute dimensions for each class box
         box_layouts: Dict[str, Dict] = {}

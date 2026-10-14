@@ -258,9 +258,9 @@
       </div>
 
       <!-- Center: Compact Segmented Diagram Switcher & Scope -->
-      <div class="topbar-secondary__center">
+      <div class="topbar-secondary__center" style="position: relative;">
         <div class="segmented-switcher" id="diagramTypeSwitcher">
-          <button class="segmented-btn segmented-btn--active" data-diag-type="class">
+          <button class="segmented-btn" data-diag-type="class">
             <i data-lucide="box"></i>
             <span>Class</span>
           </button>
@@ -272,17 +272,51 @@
             <i data-lucide="network"></i>
             <span>Architecture</span>
           </button>
-          <button class="segmented-btn" data-diag-type="packages">
+          <button class="segmented-btn segmented-btn--active" data-diag-type="packages">
             <i data-lucide="package-2"></i>
             <span>Packages</span>
           </button>
         </div>
 
-        <button class="scope-pill-btn" id="btnScopeTrigger" title="Package scope">
+        <button class="scope-pill-btn" id="btnScopeTrigger" title="Diagram Scope">
           <i data-lucide="folder-git-2"></i>
           <span id="scopeLabel">All Packages</span>
           <i data-lucide="chevron-down"></i>
         </button>
+
+        <!-- Scope Popover (Drill-Down By Scope) -->
+        <div class="scope-popover is-hidden" id="scopePopover">
+          <div class="scope-popover__header">
+            <span class="scope-popover__title">Scope Selection</span>
+          </div>
+          <div class="scope-popover__section">
+            <button type="button" class="scope-menu-item is-active" data-scope-type="all_packages">
+              <i data-lucide="boxes"></i>
+              <div class="scope-menu-item__text">
+                <span class="scope-menu-item__label">All Packages</span>
+                <span class="scope-menu-item__desc">Summarized package overview</span>
+              </div>
+            </button>
+            <button type="button" class="scope-menu-item" data-scope-type="all_classes">
+              <i data-lucide="layout-grid"></i>
+              <div class="scope-menu-item__text">
+                <span class="scope-menu-item__label">All Classes (Full Project)</span>
+                <span class="scope-menu-item__desc">Grouped by package clusters</span>
+              </div>
+            </button>
+            <button type="button" class="scope-menu-item" data-scope-type="one_hop">
+              <i data-lucide="git-branch"></i>
+              <div class="scope-menu-item__text">
+                <span class="scope-menu-item__label">Selected Class + 1-Hop Neighbors</span>
+                <span class="scope-menu-item__desc">Directly related symbols only</span>
+              </div>
+            </button>
+          </div>
+          <div class="scope-popover__sublabel">Drill-Down By Package</div>
+          <div class="scope-package-list" id="scopePackageList">
+            <!-- Dynamically populated package chips -->
+          </div>
+        </div>
       </div>
 
       <!-- Right: Compact Filter, Layout & Action Buttons -->
@@ -441,6 +475,9 @@
                   <input type="password" class="setup-input" id="setupGitToken" placeholder="ghp_..." />
                 </div>
               </div>
+              <div class="setup-git-feedback" style="margin-top: 10px;">
+                <span class="setup-scan-badge setup-scan-badge--info" id="setupGitScanBadge" style="display: none;"></span>
+              </div>
             </div>
 
           </section>
@@ -572,7 +609,7 @@
           <div class="popover-checkbox-group">
             <label class="popover-checkbox-item">
               <span>Auto-expand all classes</span>
-              <input type="checkbox" id="cbOptAutoExpand" checked />
+              <input type="checkbox" id="cbOptAutoExpand" />
             </label>
             <label class="popover-checkbox-item">
               <span>Attributes</span>
@@ -595,7 +632,7 @@
           </div>
         </div>
 
-        <!-- Relationships Section -->
+        <!-- Relationships Section (Filter by Relationship Family) -->
         <div class="popover-section">
           <span class="popover-section-label">Relationships</span>
           <div class="popover-checkbox-group">
@@ -604,12 +641,24 @@
               <input type="checkbox" id="cbOptRelInheritance" checked />
             </label>
             <label class="popover-checkbox-item">
-              <span>Association</span>
-              <input type="checkbox" id="cbOptRelAssociation" checked />
+              <span>Composition</span>
+              <input type="checkbox" id="cbOptRelComposition" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Aggregation</span>
+              <input type="checkbox" id="cbOptRelAggregation" checked />
             </label>
             <label class="popover-checkbox-item">
               <span>Dependency</span>
               <input type="checkbox" id="cbOptRelDependency" checked />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>Imports</span>
+              <input type="checkbox" id="cbOptRelImports" />
+            </label>
+            <label class="popover-checkbox-item">
+              <span>External Dependencies</span>
+              <input type="checkbox" id="cbOptRelExternal" />
             </label>
           </div>
         </div>
@@ -1266,8 +1315,9 @@
         canvas.renderCurrentDiagram();
       },
 
-      onScopeChange: (scope) => {
-        recordLog('info', 'Scope', `Package scope changed to: ${scope}`);
+      onScopeChange: (scopeType, targetName) => {
+        recordLog('info', 'Scope', `Scope changed to: ${scopeType}${targetName ? ` (${targetName})` : ''}`);
+        canvas.setScope(scopeType, targetName);
       },
 
       onProjectChange: async (projectId, projectPath = '') => {
@@ -1295,6 +1345,9 @@
 
             // Render live UML cards and connections
             canvas.setDiagramData(data);
+            if (topbar.setPackages) {
+              topbar.setPackages(canvas.packageNodes || data.packages || []);
+            }
             setTimeout(() => canvas.fitToContent(), 50);
             setTimeout(() => canvas.fitToContent(), 250);
 
@@ -1400,6 +1453,7 @@
         }
       }
     });
+    window.topbar = topbar;
 
     const appHeader = document.getElementById('appHeader');
     const setupOnboardingView = document.getElementById('setupOnboardingView');
@@ -1425,6 +1479,9 @@
         });
 
         canvas.setDiagramData(classesData);
+        if (topbar.setPackages) {
+          topbar.setPackages(canvas.packageNodes || classesData.packages || []);
+        }
         setTimeout(() => canvas.fitToContent(), 50);
         setTimeout(() => canvas.fitToContent(), 250);
 

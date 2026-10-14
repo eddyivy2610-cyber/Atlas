@@ -2025,6 +2025,40 @@
   transform: rotate(180deg);
 }
 
+.pkg-card__drill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .pkg-card__drill-btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.pkg-card__drill-btn:hover {
+  border-color: var(--primary-bg, #090C9B);
+  color: var(--primary-bg, #090C9B);
+  background: #ffffff;
+}
+
+[data-theme="dark"] .pkg-card__drill-btn:hover {
+  border-color: #60a5fa;
+  color: #60a5fa;
+  background: #0f172a;
+}
+
 /* 4-Column Metric Strip */
 .pkg-card__metrics {
   display: grid;
@@ -2175,6 +2209,311 @@
 
 .pkg-connector-path--optional {
   stroke-dasharray: 5 4;
+}
+
+/* ── Summarized Package Edge Label Pills ── */
+.pkg-edge-label-group {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.pkg-edge-label-bg {
+  fill: #ffffff;
+  stroke: #cbd5e1;
+  stroke-width: 1px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.08));
+  transition: stroke 0.15s ease, fill 0.15s ease;
+}
+
+[data-theme="dark"] .pkg-edge-label-bg {
+  fill: #1e293b;
+  stroke: #475569;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+}
+
+.pkg-edge-label-text {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  fill: #334155;
+  user-select: none;
+}
+
+[data-theme="dark"] .pkg-edge-label-text {
+  fill: #e2e8f0;
+}
+
+.pkg-edge-label-group:hover .pkg-edge-label-bg {
+  stroke: var(--primary-bg, #090C9B);
+  fill: #f8fafc;
+}
+
+[data-theme="dark"] .pkg-edge-label-group:hover .pkg-edge-label-bg {
+  stroke: #60a5fa;
+  fill: #0f172a;
+}
+
+/* ── Package Cluster Containers (Grouped Classes) ── */
+.package-cluster-box {
+  position: absolute;
+  box-sizing: border-box;
+  background: rgba(248, 250, 252, 0.75);
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 44px 20px 20px 20px;
+  pointer-events: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  z-index: 1;
+}
+
+[data-theme="dark"] .package-cluster-box {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: #334155;
+}
+
+.package-cluster-box:hover {
+  border-color: #94a3b8;
+  background: rgba(241, 245, 249, 0.88);
+}
+
+[data-theme="dark"] .package-cluster-box:hover {
+  border-color: #475569;
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.package-cluster-header {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: all;
+}
+
+.package-cluster-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.package-cluster-icon {
+  display: inline-flex;
+  color: #475569;
+}
+
+[data-theme="dark"] .package-cluster-icon {
+  color: #94a3b8;
+}
+
+.package-cluster-name {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .package-cluster-name {
+  color: #f8fafc;
+}
+
+.package-cluster-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="dark"] .package-cluster-count {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.package-cluster-drill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .package-cluster-drill-btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.package-cluster-drill-btn:hover {
+  border-color: var(--primary-bg, #090C9B);
+  color: var(--primary-bg, #090C9B);
+}
+
+/* ── Relationship Family Filter Toggles ── */
+.hide-edge-inheritance .edge-inheritance,
+.hide-edge-composition .edge-composition,
+.hide-edge-aggregation .edge-aggregation,
+.hide-edge-dependency .edge-dependency,
+.hide-edge-import .edge-import,
+.hide-edge-external .edge-external {
+  display: none !important;
+}
+
+/* ── Member Folding Pill (Expand on Demand) ── */
+.uml-member-fold-pill {
+  margin: 5px 10px 8px 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+[data-theme="dark"] .uml-member-fold-pill {
+  background: #1e293b;
+  border-color: #475569;
+  color: #94a3b8;
+}
+
+.uml-member-fold-pill:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .uml-member-fold-pill:hover {
+  background: #334155;
+  border-color: #64748b;
+  color: #f8fafc;
+}
+
+/* ── Scope Indicator Banner / Floating Dock Breadcrumb ── */
+.canvas-scope-banner {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  z-index: 40;
+}
+
+[data-theme="dark"] .canvas-scope-banner {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: #334155;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.canvas-scope-banner__info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scope-badge-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+[data-theme="dark"] .scope-badge-pill {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.scope-title-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .scope-title-text {
+  color: #f1f5f9;
+}
+
+.scope-count-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.canvas-scope-banner__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .canvas-scope-banner__back {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.canvas-scope-banner__back:hover {
+  background: #e2e8f0;
+  color: #090C9B;
+  border-color: #94a3b8;
+}
+
+.uml-card-scope-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  margin-left: 4px;
+}
+
+.uml-card-scope-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .uml-card-scope-btn:hover {
+  background: #334155;
+  color: #f8fafc;
 }
 
 

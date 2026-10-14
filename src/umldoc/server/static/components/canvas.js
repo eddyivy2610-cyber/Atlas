@@ -36,7 +36,9 @@ export class DiagramCanvasComponent {
     this.semanticTier = 'full'; // 'full' | 'compact' | 'minimal'
 
     // Diagram Model & UI State
-    this.diagramType = 'class'; // 'class' | 'architecture' | 'packages' | 'component'
+    this.diagramType = options.diagramType || 'packages'; // 'packages' | 'class' | 'architecture' | 'sequence'
+    this.currentScope = 'all_packages'; // 'all_packages' | 'selected_package' | 'one_hop' | 'all_classes'
+    this.scopeTarget = null;
     this.classes = [];
     this.relations = [];
     this.packageNodes = [];
@@ -55,11 +57,11 @@ export class DiagramCanvasComponent {
     this.sequenceScenarios = [];
     this.activeScenarioIndex = 0;
 
-    // View Options State (matches reference screenshot)
+    // View Options State (matches reference screenshot & progressive disclosure)
     this.options = {
       layout: 'standard', // standard | layered | compact
       direction: 'vertical', // vertical | horizontal
-      autoExpandClasses: true, // Auto-expand all class members by default
+      autoExpandClasses: false, // Folded by default: summarize first, reveal detail on demand
       visibility: {
         attributes: true,
         methods: true,
@@ -67,8 +69,11 @@ export class DiagramCanvasComponent {
       },
       relationships: {
         inheritance: true,
-        association: true,
-        dependency: true
+        composition: true,
+        aggregation: true,
+        dependency: true,
+        imports: false,
+        external: false
       }
     };
 
@@ -103,24 +108,162 @@ export class DiagramCanvasComponent {
 
   setDiagramType(type) {
     this.diagramType = (type || 'class').toLowerCase();
+    if (this.diagramType === 'packages' || this.diagramType === 'package') {
+      this.currentScope = 'all_packages';
+    } else if (this.diagramType === 'class' && this.currentScope === 'all_packages') {
+      this.currentScope = 'all_classes';
+    }
     this.renderCurrentDiagram();
     setTimeout(() => this.fitToContent(), 40);
     setTimeout(() => this.fitToContent(), 220);
   }
 
+  getPackageForClass(cls) {
+    if (!cls) return 'default';
+    if (cls.package) return cls.package;
+    if (this.packageNodes && this.packageNodes.length) {
+      for (const p of this.packageNodes) {
+        if (p.classes && p.classes.includes(cls.name)) return p.name;
+        if (p.modules && p.modules.includes(cls.name)) return p.name;
+      }
+    }
+    if (cls.file) {
+      const parts = cls.file.replace(/\\/g, '/').split('/');
+      if (parts.length > 1) return parts[0];
+    }
+    if (cls.name && cls.name.includes('.')) {
+      return cls.name.split('.')[0];
+    }
+    return 'core';
+  }
+
+  getClassesForPackage(pkgName) {
+    if (!pkgName || !this.classes) return [];
+    return this.classes.filter(cls => {
+      if (this.getPackageForClass(cls) === pkgName) return true;
+      if (cls.name && cls.name.startsWith(pkgName + '.')) return true;
+      if (cls.file && cls.file.replace(/\\/g, '/').startsWith(pkgName + '/')) return true;
+      return false;
+    });
+  }
+
+  setScope(scopeType, targetName = null) {
+    this.currentScope = scopeType || 'all_packages';
+    this.scopeTarget = targetName;
+
+    if (this.currentScope === 'all_packages') {
+      this.diagramType = 'packages';
+      this.removeScopeBanner();
+      const diagBtn = document.querySelector('#diagramTypeSwitcher .segmented-btn[data-diag-type="packages"]');
+      if (diagBtn) {
+        document.querySelectorAll('#diagramTypeSwitcher .segmented-btn').forEach(b => b.classList.remove('segmented-btn--active'));
+        diagBtn.classList.add('segmented-btn--active');
+      }
+      this.renderPackagesDiagram();
+    } else if (this.currentScope === 'selected_package') {
+      this.diagramType = 'class';
+      const pkgClasses = this.getClassesForPackage(targetName);
+      const nameSet = new Set(pkgClasses.map(c => c.name));
+      const pkgRels = (this.relations || []).filter(r => nameSet.has(r.source) && nameSet.has(r.target));
+      this.renderScopeBanner(`Package: ${targetName} (${pkgClasses.length} classes)`);
+      this.renderDiagram(pkgClasses, pkgRels, this.drift, targetName);
+    } else if (this.currentScope === 'one_hop') {
+      this.diagramType = 'class';
+      const centerNode = targetName || (this.selectedNodeId || (this.classes[0] && this.classes[0].name));
+      const hopSet = new Set([centerNode]);
+      (this.relations || []).forEach(r => {
+        if (r.source === centerNode) hopSet.add(r.target);
+        if (r.target === centerNode) hopSet.add(r.source);
+      });
+      const hopClasses = (this.classes || []).filter(c => hopSet.has(c.name));
+      const hopRels = (this.relations || []).filter(r => hopSet.has(r.source) && hopSet.has(r.target));
+      this.renderScopeBanner(`Class: ${centerNode} + 1-Hop (${hopClasses.length} classes)`);
+      this.renderDiagram(hopClasses, hopRels, this.drift, `1-Hop: ${centerNode}`);
+    } else if (this.currentScope === 'all_classes') {
+      this.diagramType = 'class';
+      this.renderScopeBanner(`All Classes (Full Project — ${this.classes.length} classes)`);
+      this.renderDiagram(this.classes, this.relations, this.drift);
+    }
+
+    setTimeout(() => this.fitToContent(), 50);
+  }
+
+  renderScopeBanner(titleText) {
+    let banner = document.getElementById('canvasScopeBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'canvasScopeBanner';
+      banner.className = 'canvas-scope-banner';
+      if (this.container) this.container.appendChild(banner);
+    }
+    banner.innerHTML = `
+      <div class="canvas-scope-banner__info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--primary-bg, #090C9B);">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span style="color:#64748b; font-size:11px;">Scope:</span>
+        <strong style="color:var(--text-primary, #0f172a); font-size:11.5px; font-weight:700;">${this._escape(titleText)}</strong>
+      </div>
+      <button class="canvas-scope-banner__back" id="btnScopeBannerBack" title="Return to All Packages Overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span>All Packages Overview</span>
+      </button>
+    `;
+
+    const backBtn = banner.querySelector('#btnScopeBannerBack');
+    if (backBtn) {
+      backBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setScope('all_packages');
+      });
+    }
+  }
+
+  removeScopeBanner() {
+    const banner = document.getElementById('canvasScopeBanner');
+    if (banner) banner.remove();
+  }
+
   renderCurrentDiagram() {
     if (this.diagramType === 'sequence') {
+      this.removeScopeBanner();
       this.renderSequenceDiagram();
       return;
     }
     if (this.diagramType === 'architecture' || this.diagramType === 'component') {
+      this.removeScopeBanner();
       this.renderArchitectureDiagram();
       return;
     }
     if (this.diagramType === 'packages' || this.diagramType === 'package') {
+      this.removeScopeBanner();
       this.renderPackagesDiagram();
       return;
     }
+
+    // Class diagram mode respecting currentScope
+    if (this.currentScope === 'selected_package' && this.scopeTarget) {
+      const pkgClasses = this.getClassesForPackage(this.scopeTarget);
+      const nameSet = new Set(pkgClasses.map(c => c.name));
+      const pkgRels = (this.relations || []).filter(r => nameSet.has(r.source) && nameSet.has(r.target));
+      this.renderScopeBanner(`Package: ${this.scopeTarget} (${pkgClasses.length} classes)`);
+      this.renderDiagram(pkgClasses, pkgRels, this.drift, this.scopeTarget);
+      return;
+    }
+    if (this.currentScope === 'one_hop' && this.scopeTarget) {
+      const centerNode = this.scopeTarget;
+      const hopSet = new Set([centerNode]);
+      (this.relations || []).forEach(r => {
+        if (r.source === centerNode) hopSet.add(r.target);
+        if (r.target === centerNode) hopSet.add(r.source);
+      });
+      const hopClasses = (this.classes || []).filter(c => hopSet.has(c.name));
+      const hopRels = (this.relations || []).filter(r => hopSet.has(r.source) && hopSet.has(r.target));
+      this.renderScopeBanner(`Class: ${centerNode} + 1-Hop (${hopClasses.length} classes)`);
+      this.renderDiagram(hopClasses, hopRels, this.drift, `1-Hop: ${centerNode}`);
+      return;
+    }
+
     let nodes = this.classes;
     let rels = this.relations;
     this.renderDiagram(nodes, rels, this.drift);
@@ -479,12 +622,25 @@ export class DiagramCanvasComponent {
     });
 
     // Checkboxes
+    const updateRelationshipFilterClasses = () => {
+      if (!this.container) return;
+      this.container.classList.toggle('hide-edge-inheritance', !this.options.relationships.inheritance);
+      this.container.classList.toggle('hide-edge-composition', !this.options.relationships.composition);
+      this.container.classList.toggle('hide-edge-aggregation', !this.options.relationships.aggregation);
+      this.container.classList.toggle('hide-edge-dependency', !this.options.relationships.dependency);
+      this.container.classList.toggle('hide-edge-import', !this.options.relationships.imports);
+      this.container.classList.toggle('hide-edge-external', !this.options.relationships.external);
+    };
+
     const bindCb = (id, key, subkey) => {
       const el = document.getElementById(id);
       if (el) {
-        el.checked = this.options[key][subkey];
+        el.checked = !!this.options[key][subkey];
         el.addEventListener('change', () => {
           this.options[key][subkey] = el.checked;
+          if (key === 'relationships') {
+            updateRelationshipFilterClasses();
+          }
           this.renderCurrentDiagram();
           this.notifyOptionsChange();
         });
@@ -495,8 +651,12 @@ export class DiagramCanvasComponent {
     bindCb('cbOptMethods', 'visibility', 'methods');
     bindCb('cbOptInherited', 'visibility', 'inherited');
     bindCb('cbOptRelInheritance', 'relationships', 'inheritance');
-    bindCb('cbOptRelAssociation', 'relationships', 'association');
+    bindCb('cbOptRelComposition', 'relationships', 'composition');
+    bindCb('cbOptRelAggregation', 'relationships', 'aggregation');
     bindCb('cbOptRelDependency', 'relationships', 'dependency');
+    bindCb('cbOptRelImports', 'relationships', 'imports');
+    bindCb('cbOptRelExternal', 'relationships', 'external');
+    updateRelationshipFilterClasses();
 
     // Auto-Expand Classes Checkbox
     const autoExpCb = document.getElementById('cbOptAutoExpand');
@@ -560,19 +720,21 @@ export class DiagramCanvasComponent {
     const methods = cls.methods || [];
     let h = 42; // Header height
     
+    const maxA = isExp ? attrs.length : Math.min(3, attrs.length);
+    const maxM = isExp ? methods.length : Math.min(4, methods.length);
+
     if (this.options.visibility.attributes && attrs.length > 0) {
-      const shownAttrs = isExp ? attrs.length : Math.min(6, attrs.length);
-      h += 12 + shownAttrs * 19;
-      if (!isExp && attrs.length > 6) h += 18;
+      h += 8 + maxA * 19;
     }
     
     if (this.options.visibility.methods && methods.length > 0) {
-      const shownMethods = isExp ? methods.length : Math.min(6, methods.length);
-      h += 12 + shownMethods * 19;
-      if (!isExp && methods.length > 6) h += 18;
+      h += 8 + maxM * 19;
     }
     
-    if (attrs.length > 6 || methods.length > 6) {
+    const hiddenCount = (attrs.length > maxA ? attrs.length - maxA : 0) + (methods.length > maxM ? methods.length - maxM : 0);
+    if (!isExp && hiddenCount > 0) {
+      h += 24; // Fold pill height
+    } else if (isExp && (attrs.length > 3 || methods.length > 4)) {
       h += 28; // Footer toggle
     }
     
@@ -704,6 +866,14 @@ export class DiagramCanvasComponent {
     this.renderedRelations = relations || [];
     this.drift = drift || [];
 
+    // Stable layout: sort deterministically by package and then name
+    this.renderedNodes.sort((a, b) => {
+      const pA = (this.getPackageForClass(a) || '').toLowerCase();
+      const pB = (this.getPackageForClass(b) || '').toLowerCase();
+      if (pA !== pB) return pA.localeCompare(pB);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
     this.setClassCount(this.renderedNodes.length);
 
     if (!this.nodesLayer || !this.svgLayer) return;
@@ -758,6 +928,13 @@ export class DiagramCanvasComponent {
 
       sortedRanks.forEach(rank => {
         const layerNodes = layers.get(rank);
+        layerNodes.sort((a, b) => {
+          const pA = (this.getPackageForClass(a) || '').toLowerCase();
+          const pB = (this.getPackageForClass(b) || '').toLowerCase();
+          if (pA !== pB) return pA.localeCompare(pB);
+          return (a.name || '').localeCompare(b.name || '');
+        });
+
         const maxCols = (layerNodes.length === 4) ? 4 : 3;
 
         for (let i = 0; i < layerNodes.length; i += maxCols) {
@@ -784,6 +961,75 @@ export class DiagramCanvasComponent {
         }
       });
     }
+
+    // Render Package Cluster Containers (Grouped by Package) in Background Layer
+    const packageGroups = new Map();
+    this.renderedNodes.forEach(cls => {
+      const pkg = this.getPackageForClass(cls) || 'core';
+      if (!packageGroups.has(pkg)) packageGroups.set(pkg, []);
+      packageGroups.get(pkg).push(cls);
+    });
+
+    packageGroups.forEach((pkgClasses, pkgName) => {
+      if (!pkgClasses.length) return;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      pkgClasses.forEach(c => {
+        const p = this.nodePositions[c.name];
+        if (p) {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x + p.w > maxX) maxX = p.x + p.w;
+          if (p.y + p.h > maxY) maxY = p.y + p.h;
+        }
+      });
+
+      if (minX !== Infinity && isFinite(minX)) {
+        const cX = Math.max(20, minX - 16);
+        const cY = Math.max(20, minY - 36);
+        const cW = (maxX - minX) + 32;
+        const cH = (maxY - minY) + 48;
+
+        const clusterBox = document.createElement('div');
+        clusterBox.className = 'package-cluster-box';
+        clusterBox.id = `cluster-pkg-${pkgName}`;
+        clusterBox.style.left = `${cX}px`;
+        clusterBox.style.top = `${cY}px`;
+        clusterBox.style.width = `${cW}px`;
+        clusterBox.style.height = `${cH}px`;
+
+        clusterBox.innerHTML = `
+          <div class="package-cluster-header">
+            <div class="package-cluster-title-wrap">
+              <span class="package-cluster-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </span>
+              <span class="package-cluster-name">${this._escape(pkgName)}</span>
+              <span class="package-cluster-count">${pkgClasses.length} ${pkgClasses.length === 1 ? 'class' : 'classes'}</span>
+            </div>
+            ${this.currentScope !== 'selected_package' ? `
+              <button class="package-cluster-drill-btn" data-drill-pkg="${this._escape(pkgName)}" title="Focus only on ${this._escape(pkgName)}">
+                <span>Focus Scope</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px;">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            ` : ''}
+          </div>
+        `;
+
+        const drillBtn = clusterBox.querySelector('[data-drill-pkg]');
+        if (drillBtn) {
+          drillBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.setScope('selected_package', pkgName);
+          });
+        }
+
+        this.nodesLayer.appendChild(clusterBox);
+      }
+    });
 
     // Render Cards with Integer Positioning
     this.renderedNodes.forEach(cls => {
@@ -814,13 +1060,17 @@ export class DiagramCanvasComponent {
         badgeText = 'Changed';
       }
 
+      // Member folding limits (max 3 attrs, 4 methods when folded)
+      const maxA = isExp ? attrs.length : Math.min(3, attrs.length);
+      const maxM = isExp ? methods.length : Math.min(4, methods.length);
+      const hiddenA = attrs.length - maxA;
+      const hiddenM = methods.length - maxM;
+      const hiddenTotal = (hiddenA > 0 ? hiddenA : 0) + (hiddenM > 0 ? hiddenM : 0);
+
       // Attributes HTML
       let attrsHtml = '';
       if (this.options.visibility.attributes && attrs.length > 0) {
-        const maxA = isExp ? attrs.length : Math.min(6, attrs.length);
         const visibleA = attrs.slice(0, maxA);
-        const hiddenA = attrs.length - maxA;
-
         attrsHtml = `
           <div class="uml-card__section uml-card__section--attrs">
             ${visibleA.map(a => {
@@ -833,7 +1083,6 @@ export class DiagramCanvasComponent {
                 </div>
               `;
             }).join('')}
-            ${hiddenA > 0 ? `<div class="uml-more-members">+ ${hiddenA} more attributes</div>` : ''}
           </div>
         `;
       }
@@ -841,10 +1090,7 @@ export class DiagramCanvasComponent {
       // Methods HTML
       let methodsHtml = '';
       if (this.options.visibility.methods && methods.length > 0) {
-        const maxM = isExp ? methods.length : Math.min(6, methods.length);
         const visibleM = methods.slice(0, maxM);
-        const hiddenM = methods.length - maxM;
-
         methodsHtml = `
           <div class="uml-card__section uml-card__section--methods">
             ${visibleM.map(m => {
@@ -858,19 +1104,29 @@ export class DiagramCanvasComponent {
                 </div>
               `;
             }).join('')}
-            ${hiddenM > 0 ? `<div class="uml-more-members">+ ${hiddenM} more methods</div>` : ''}
           </div>
         `;
       }
 
-      // Footer Toggle
-      const hasToggle = (attrs.length > 6 || methods.length > 6);
+      // Member folding expandable pill
+      let foldPillHtml = '';
+      if (!isExp && hiddenTotal > 0) {
+        foldPillHtml = `
+          <div style="padding: 2px 10px 6px 10px;">
+            <button class="uml-member-fold-pill" data-toggle="${cls.name}" title="Click to show all ${attrs.length + methods.length} members">
+              + ${hiddenTotal} more members
+            </button>
+          </div>
+        `;
+      }
+
+      // Footer Toggle (Show fewer members when expanded)
       let footerHtml = '';
-      if (hasToggle) {
+      if (isExp && (attrs.length > 3 || methods.length > 4)) {
         footerHtml = `
           <div class="uml-card__footer">
             <button class="uml-toggle-btn" data-toggle="${cls.name}">
-              <span>${isExp ? 'Show fewer members' : 'Show all members'}</span>
+              <span>Show fewer members</span>
             </button>
           </div>
         `;
@@ -896,31 +1152,50 @@ export class DiagramCanvasComponent {
 
       card.innerHTML = `
         <div class="uml-card__header">
+          <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
               <span class="uml-card__stereotype">${this._escape(cls.stereotype || '«class»')}</span>
               ${cls.tier ? `<span class="vivid-badge vivid-badge--primary" style="font-size: 8.5px; padding: 1px 5px;">${this._escape(cls.tier)}</span>` : ''}
               ${cls.instability !== undefined ? `<span class="vivid-badge vivid-badge--yellow" style="font-size: 8.5px; padding: 1px 5px;">I: ${Number(cls.instability).toFixed(2)}</span>` : ''}
               ${cls.is_cyclic ? `<span class="vivid-badge" style="font-size: 8.5px; padding: 1px 5px; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;">CYCLIC</span>` : ''}
             </div>
-            <div style="display: flex; align-items: center; min-width: 0;">
+            <div style="display: flex; align-items: center; min-width: 0; gap: 4px; margin-top: 2px;">
               ${iconSvg}
               <h4 class="uml-card__title" title="${this._escape(cls.name)}">${this._escape(cls.name)}</h4>
             </div>
           </div>
-          <span class="badge-status ${badgeClass}">${badgeText}</span>
+          <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <button class="uml-card-scope-btn" data-scope-hop="${cls.name}" title="Focus on ${cls.name} + 1-hop neighbors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width: 11px; height: 11px;">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 3v3m0 12v3m9-9h-3M6 12H3"></path>
+              </svg>
+            </button>
+            <span class="badge-status ${badgeClass}">${badgeText}</span>
+          </div>
         </div>
         ${summaryHtml}
         ${attrsHtml}
         ${methodsHtml}
+        ${foldPillHtml}
         ${footerHtml}
       `;
 
       // Expand/Collapse listener
-      const tBtn = card.querySelector('[data-toggle]');
-      if (tBtn) {
-        tBtn.addEventListener('click', (e) => {
+      const tBtns = card.querySelectorAll('[data-toggle]');
+      tBtns.forEach(b => {
+        b.addEventListener('click', (e) => {
           e.stopPropagation();
           this.toggleNodeExpanded(cls.name);
+        });
+      });
+
+      // 1-Hop scope button listener
+      const hopBtn = card.querySelector('[data-scope-hop]');
+      if (hopBtn) {
+        hopBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.setScope('one_hop', cls.name);
         });
       }
 
@@ -1132,6 +1407,12 @@ export class DiagramCanvasComponent {
             <span class="pkg-card__stereotype">${this._escape(pkg.stereotype || '«package»')}</span>
             <h4 class="pkg-card__title" title="${this._escape(pkg.name)}">${this._escape(pkg.name)}</h4>
           </div>
+          <button class="pkg-card__drill-btn" data-pkg-drill="${pkg.name}" title="Drill into ${pkg.name} package (View Classes)">
+            <span>Explore</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 10px; height: 10px;">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
           <button class="pkg-card__expand-btn" data-pkg-toggle="${pkg.name}" title="${isExp ? 'Collapse modules' : 'Expand modules'}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
@@ -1183,10 +1464,19 @@ export class DiagramCanvasComponent {
         });
       }
 
-      // Double-click on card toggles expansion
+      // Drill-down button listener (Explore package scope)
+      const drillBtn = card.querySelector('[data-pkg-drill]');
+      if (drillBtn) {
+        drillBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.setScope('selected_package', pkg.name);
+        });
+      }
+
+      // Double-click on card drills down to package scope
       card.addEventListener('dblclick', (e) => {
         e.stopPropagation();
-        this.togglePackageExpanded(pkg.name);
+        this.setScope('selected_package', pkg.name);
       });
 
       // Single-click selects node (opens inspector)
@@ -1201,6 +1491,19 @@ export class DiagramCanvasComponent {
 
     // Render Package Connectors
     this.renderPackageConnectors(relations);
+  }
+
+  countClassDependenciesBetweenPackages(srcPkg, tgtPkg) {
+    if (!this.relations || !this.relations.length) return 0;
+    let count = 0;
+    this.relations.forEach(r => {
+      const s = (this.classes || []).find(c => c.name === r.source);
+      const t = (this.classes || []).find(c => c.name === r.target);
+      if (s && t && this.getPackageForClass(s) === srcPkg && this.getPackageForClass(t) === tgtPkg) {
+        count++;
+      }
+    });
+    return count;
   }
 
   renderPackageConnectors(relations) {
@@ -1229,14 +1532,12 @@ export class DiagramCanvasComponent {
       if (!isAbove && !isBelow) {
         // Horizontal on same row
         if (sCenterX < tCenterX) {
-          // Left to right (e.g. interfaces -> core, models -> data)
           x1 = sPos.x + sPos.w;
           y1 = sCenterY;
           x2 = tPos.x;
           y2 = tCenterY;
           d = `M ${x1} ${y1} L ${x2} ${y2}`;
         } else {
-          // Right to left (e.g. services -> core)
           x1 = sPos.x;
           y1 = sCenterY;
           x2 = tPos.x + tPos.w;
@@ -1246,14 +1547,12 @@ export class DiagramCanvasComponent {
       } else if (isAbove) {
         // Source is distinctly above target
         if (Math.abs(sCenterX - tCenterX) < 40) {
-          // Direct vertical downward connection (e.g. career_compass -> core)
           x1 = sCenterX;
           y1 = sPos.y + sPos.h;
           x2 = tCenterX;
           y2 = tPos.y;
           d = `M ${x1} ${y1} L ${x2} ${y2}`;
         } else if (tCenterX < sCenterX) {
-          // Downward-left curve (e.g. career_compass -> interfaces, core -> models, services -> data)
           if (srcName === 'career_compass' && tgtName === 'interfaces') {
             x1 = sPos.x + 35;
             y1 = sPos.y + sPos.h;
@@ -1279,7 +1578,6 @@ export class DiagramCanvasComponent {
           const cy2 = y2 - (y2 - y1) * 0.45;
           d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`;
         } else {
-          // Downward-right curve (e.g. career_compass -> services, core -> data)
           if (srcName === 'career_compass' && tgtName === 'services') {
             x1 = sPos.x + sPos.w - 35;
             y1 = sPos.y + sPos.h;
@@ -1314,8 +1612,19 @@ export class DiagramCanvasComponent {
       const marker = isCyclic ? 'url(#marker-package-dep-cyclic)' : 'url(#marker-package-dep)';
       const cls = `pkg-connector-path ${isCyclic ? 'pkg-connector-path--cyclic' : ''} ${isOptional ? 'pkg-connector-path--optional' : ''}`;
 
+      // Summarized dependencies count on package edges
+      const depCount = rel.import_count || rel.dependencies_count || (rel.imported_symbols ? rel.imported_symbols.length : 0) || this.countClassDependenciesBetweenPackages(srcName, tgtName) || (rel.label && !isNaN(parseInt(rel.label)) ? parseInt(rel.label) : 1);
+      const labelText = depCount > 1 ? `${depCount} dependencies` : (rel.label || '1 dependency');
+      const textW = Math.max(54, Math.round(labelText.length * 6.4 + 18));
+      const midX = Math.round((x1 + x2) / 2);
+      const midY = Math.round((y1 + y2) / 2);
+
       pathsMarkup += `
         <path id="pkg-edge-${rIdx}" class="${cls}" d="${d}" marker-end="${marker}" data-source="${srcName}" data-target="${tgtName}"></path>
+        <g class="pkg-edge-label-group" data-source="${srcName}" data-target="${tgtName}">
+          <rect class="pkg-edge-label-bg" x="${midX - Math.round(textW / 2)}" y="${midY - 9}" width="${textW}" height="18" rx="9"></rect>
+          <text class="pkg-edge-label-text" x="${midX}" y="${midY + 1}" text-anchor="middle" dominant-baseline="central">${this._escape(labelText)}</text>
+        </g>
       `;
     });
 
@@ -1325,23 +1634,29 @@ export class DiagramCanvasComponent {
     this.svgLayer.appendChild(g);
 
     // Interactive hover highlights
-    g.querySelectorAll('.pkg-connector-path').forEach(p => {
-      p.addEventListener('mouseenter', () => {
-        p.classList.add('pkg-connector-path--active');
-        p.setAttribute('marker-end', 'url(#marker-package-dep-active)');
-        const s = document.getElementById(`pkg-node-${p.dataset.source}`);
-        const t = document.getElementById(`pkg-node-${p.dataset.target}`);
+    g.querySelectorAll('.pkg-connector-path, .pkg-edge-label-group').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        const p = el.classList.contains('pkg-connector-path') ? el : g.querySelector(`.pkg-connector-path[data-source="${el.dataset.source}"][data-target="${el.dataset.target}"]`);
+        if (p) {
+          p.classList.add('pkg-connector-path--active');
+          p.setAttribute('marker-end', 'url(#marker-package-dep-active)');
+        }
+        const s = document.getElementById(`pkg-node-${el.dataset.source}`);
+        const t = document.getElementById(`pkg-node-${el.dataset.target}`);
         if (s) s.classList.add('pkg-card--selected');
         if (t) t.classList.add('pkg-card--selected');
       });
-      p.addEventListener('mouseleave', () => {
-        p.classList.remove('pkg-connector-path--active');
-        const isC = p.classList.contains('pkg-connector-path--cyclic');
-        p.setAttribute('marker-end', isC ? 'url(#marker-package-dep-cyclic)' : 'url(#marker-package-dep)');
-        const s = document.getElementById(`pkg-node-${p.dataset.source}`);
-        const t = document.getElementById(`pkg-node-${p.dataset.target}`);
-        if (s && this.selectedNodeId !== p.dataset.source) s.classList.remove('pkg-card--selected');
-        if (t && this.selectedNodeId !== p.dataset.target) t.classList.remove('pkg-card--selected');
+      el.addEventListener('mouseleave', () => {
+        const p = el.classList.contains('pkg-connector-path') ? el : g.querySelector(`.pkg-connector-path[data-source="${el.dataset.source}"][data-target="${el.dataset.target}"]`);
+        if (p) {
+          p.classList.remove('pkg-connector-path--active');
+          const isC = p.classList.contains('pkg-connector-path--cyclic');
+          p.setAttribute('marker-end', isC ? 'url(#marker-package-dep-cyclic)' : 'url(#marker-package-dep)');
+        }
+        const s = document.getElementById(`pkg-node-${el.dataset.source}`);
+        const t = document.getElementById(`pkg-node-${el.dataset.target}`);
+        if (s && this.selectedNodeId !== el.dataset.source) s.classList.remove('pkg-card--selected');
+        if (t && this.selectedNodeId !== el.dataset.target) t.classList.remove('pkg-card--selected');
       });
     });
   }
@@ -2728,31 +3043,50 @@ export class DiagramCanvasComponent {
       if (!from || !to || rel.source === rel.target) return;
 
       const relTypeNorm = (rel.type || '').toLowerCase();
+      const isImport = relTypeNorm.includes('import') || (rel.label && rel.label.toLowerCase().includes('import'));
+      const isInherit = relTypeNorm.includes('inherit') || relTypeNorm.includes('realiz');
+      const isComp = relTypeNorm.includes('comp');
+      const isAggr = relTypeNorm.includes('aggr');
+      const isExt = relTypeNorm.includes('external') || rel.is_external;
+      const isDep = !isInherit && !isComp && !isAggr && !isImport && !isExt;
       
-      // Filter by View Options
-      if (relTypeNorm.includes('inherit') && !this.options.relationships.inheritance) return;
-      if (relTypeNorm.includes('assoc') && !this.options.relationships.association) return;
-      if ((relTypeNorm.includes('depend') || relTypeNorm.includes('import')) && !this.options.relationships.dependency) return;
+      // Filter by View Options (Progressive Disclosure)
+      if (isInherit && !this.options.relationships.inheritance) return;
+      if (isComp && !this.options.relationships.composition) return;
+      if (isAggr && !this.options.relationships.aggregation) return;
+      if (isImport && !this.options.relationships.imports) return;
+      if (isExt && !this.options.relationships.external) return;
+      if (isDep && !this.options.relationships.dependency) return;
 
       let markerStart = null;
       let markerEnd = null;
       let relClass = 'diag-connector-path--association';
+      let familyClass = 'edge-dependency';
 
-      if (relTypeNorm.includes('inherit') || relTypeNorm.includes('realiz')) {
+      if (isInherit) {
         markerEnd = 'marker-inherit';
         relClass = 'diag-connector-path--inheritance';
-      } else if (relTypeNorm.includes('comp')) {
+        familyClass = 'edge-inheritance';
+      } else if (isComp) {
         markerStart = 'marker-composition';
         relClass = 'diag-connector-path--composition';
-      } else if (relTypeNorm.includes('aggr')) {
+        familyClass = 'edge-composition';
+      } else if (isAggr) {
         markerEnd = 'marker-aggregation';
         relClass = 'diag-connector-path--aggregation';
-      } else if (relTypeNorm.includes('depend') || relTypeNorm.includes('import') || relTypeNorm.includes('use')) {
+        familyClass = 'edge-aggregation';
+      } else if (isImport) {
         markerEnd = 'marker-dep';
         relClass = 'diag-connector-path--dependency';
-      } else if (relTypeNorm.includes('rpc') || relTypeNorm.includes('api') || relTypeNorm.includes('provide')) {
+        familyClass = 'edge-import';
+      } else if (isExt) {
         markerEnd = 'marker-dep';
-        relClass = 'diag-connector-path--association';
+        relClass = 'diag-connector-path--dependency';
+        familyClass = 'edge-external';
+      } else {
+        markerEnd = 'marker-dep';
+        relClass = 'diag-connector-path--dependency';
+        familyClass = 'edge-dependency';
       }
 
       // Compute obstacle-avoiding smart route
@@ -2761,7 +3095,7 @@ export class DiagramCanvasComponent {
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', d);
-      path.setAttribute('class', `diag-connector-path ${relClass}`);
+      path.setAttribute('class', `diag-connector-path ${relClass} ${familyClass}`);
       path.setAttribute('vector-effect', 'non-scaling-stroke'); // Non-scaling stroke for razor sharpness
       path.setAttribute('data-from', rel.source);
       path.setAttribute('data-to', rel.target);

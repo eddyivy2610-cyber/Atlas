@@ -251,3 +251,77 @@ def test_api_export_endpoints(live_server: str):
         assert "</svg>" in svg_text
         assert "parsererror" not in svg_text
 
+
+def test_api_scan_git_repository_cached(live_server: str):
+    """Verify /api/scan returns cached clone info when Git URL points to an existing repo."""
+    git_url = "https://github.com/msiemens/tinydb.git"
+    scan_url = f"{live_server}/api/scan?path={urllib.request.quote(git_url)}"
+    with urllib.request.urlopen(scan_url, timeout=10) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "OK"
+        assert data["is_git"] is True
+        assert data["is_cloned"] is True
+        assert data["repo_name"] == "tinydb"
+        assert data["system_files_count"] >= 5
+
+
+def test_api_scan_git_repository_remote_mock(live_server: str, monkeypatch):
+    """Verify /api/scan verifies remote Git repositories."""
+    from unittest.mock import patch
+    with patch("umldoc.server.app.check_remote_git_repo") as mock_check:
+        mock_check.return_value = {
+            "accessible": True,
+            "branches": ["main", "feature"],
+            "default_branch": "main",
+        }
+        git_url = "https://github.com/org/mock-remote-project.git"
+        scan_url = f"{live_server}/api/scan?path={urllib.request.quote(git_url)}"
+        with urllib.request.urlopen(scan_url, timeout=10) as resp:
+            assert resp.status == 200
+            data = json.loads(resp.read().decode("utf-8"))
+            assert data["status"] == "OK"
+            assert data["is_git"] is True
+            assert data["is_cloned"] is False
+            assert data["repo_name"] == "mock-remote-project"
+            assert "main" in data["branches"]
+            assert data["default_branch"] == "main"
+
+
+def test_api_run_git_clone_pipeline(live_server: str):
+    """Verify POST /api/run handles git_url, invokes clone_or_update_repo, and runs the extraction pipeline."""
+    from unittest.mock import patch
+    from umldoc.server.app import REPO_ROOT
+
+    tinydb_path = REPO_ROOT / "data" / "repos" / "tinydb" / "tinydb"
+    with patch("umldoc.server.app.clone_or_update_repo") as mock_clone:
+        mock_clone.return_value = tinydb_path
+
+        run_url = f"{live_server}/api/run"
+        payload = json.dumps({
+            "project": "tinydb-git",
+            "git_url": "https://github.com/msiemens/tinydb.git",
+            "branch": "master",
+            "token": "ghp_mock_token",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            run_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            assert resp.status == 200
+            result = json.loads(resp.read().decode("utf-8"))
+            assert result["status"] == "SUCCESS"
+            assert result["project"] == "tinydb-git"
+            assert result["classes_extracted"] >= 14
+            assert mock_clone.called
+            called_args = mock_clone.call_args[1]
+            assert called_args["repo_url"] == "https://github.com/msiemens/tinydb.git"
+            assert called_args["branch"] == "master"
+            assert called_args["token"] == "ghp_mock_token"
+
+
+
